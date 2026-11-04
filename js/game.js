@@ -38,6 +38,8 @@ window.KK = window.KK || {};
   let heroTime = 0, heroRaf = 0, heroWorld = null, heroLast = 0, heroCam = { x: -150, y: 290, zoom: 1 };
   let dragState = null;
   let toastTimes = [];
+  const notificationHistory = [];
+  let unreadNotifications = 0;
 
   // ---------- audio ----------
   function ac() {
@@ -394,6 +396,7 @@ window.KK = window.KK || {};
     next.t += dt * next.speed;
     if (next.t >= 1) {
       const tx = Math.round(next.toX - .5), ty = Math.round(next.toY - .5);
+      const prevDx = Math.sign(next.toX - next.fromX), prevDy = Math.sign(next.toY - next.fromY);
       next.fromX = next.toX; next.fromY = next.toY;
       const choices = [];
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -401,8 +404,8 @@ window.KK = window.KK || {};
         if (nx >= 0 && ny >= 0 && nx < size && ny < size && isRoad(nx, ny)) choices.push({ x: nx, y: ny, dx, dy });
       }
       if (!choices.length) { next.alive = false; return next; }
-      const prevDx = Math.sign(next.toX - next.fromX), prevDy = Math.sign(next.toY - next.fromY);
-      const forward = choices.filter(pick => pick.dx !== -prevDx || pick.dy !== -prevDy);
+      const reverse = { dx: -prevDx, dy: -prevDy };
+      const forward = choices.filter(pick => pick.dx !== reverse.dx || pick.dy !== reverse.dy);
       const options = forward.length ? forward : choices;
       const pick = options[Math.floor(Math.random() * options.length)];
       next.toX = pick.x + .5; next.toY = pick.y + .5;
@@ -704,12 +707,63 @@ window.KK = window.KK || {};
 
   // ---------- UI ----------
   function icon(name, cls) { return `<svg class="ic ${cls || ''}"><use href="#i-${name}"/></svg>`; }
+  function renderNotifications() {
+    const list = $('#notificationsList');
+    if (!list) return;
+    list.replaceChildren();
+    if (!notificationHistory.length) {
+      const empty = document.createElement('div');
+      empty.className = 'notifications-empty';
+      empty.textContent = 'Belum ada notifikasi. Kabar kota akan muncul di sini.';
+      list.appendChild(empty);
+      return;
+    }
+    for (const item of notificationHistory) {
+      const row = document.createElement('article');
+      row.className = `notification-item ${item.type}`;
+      const mark = document.createElement('span');
+      mark.className = 'notification-icon';
+      mark.innerHTML = icon(item.icon);
+      const content = document.createElement('div');
+      content.className = 'notification-content';
+      const message = document.createElement('div');
+      message.className = 'notification-message';
+      message.textContent = item.message;
+      const time = document.createElement('time');
+      time.className = 'notification-time';
+      time.dateTime = item.date.toISOString();
+      time.textContent = item.date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      content.append(message, time);
+      row.append(mark, content);
+      list.appendChild(row);
+    }
+  }
+  function updateNotificationBadge() {
+    const badge = $('#notificationBadge');
+    if (!badge) return;
+    badge.hidden = unreadNotifications < 1;
+    badge.textContent = unreadNotifications > 9 ? '9+' : String(unreadNotifications);
+    $('#notificationsBtn')?.setAttribute('aria-label', unreadNotifications ? `Notifikasi, ${unreadNotifications} belum dibaca` : 'Notifikasi');
+  }
   function toast(msg, type, iconName) {
-    const wrap = $('#toasts'); if (!wrap) return;
+    const wrap = $('#toasts');
+    const message = String(msg);
+    const kind = type || 'info';
+    const symbol = iconName || 'info';
+    const entry = { message, type: kind, icon: symbol, date: new Date() };
+    notificationHistory.unshift(entry);
+    if (notificationHistory.length > 50) notificationHistory.length = 50;
+    unreadNotifications++;
+    updateNotificationBadge();
+    renderNotifications();
+    if (!wrap) return;
     while (wrap.children.length >= 4) wrap.removeChild(wrap.firstChild);
     const el = document.createElement('div');
-    el.className = 'toast ' + (type || '');
-    el.innerHTML = `${icon(iconName || 'info')}<span>${msg}</span>`;
+    el.className = 'toast ' + kind;
+    el.innerHTML = icon(symbol);
+    const text = document.createElement('span');
+    text.textContent = message;
+    el.appendChild(text);
     wrap.appendChild(el);
     setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, 3600);
   }
@@ -1364,6 +1418,33 @@ window.KK = window.KK || {};
       if (d.unlockPop > state.maxPop) { sfx.error(); toast(`Terbuka pada ${fmt(d.unlockPop)} penduduk. Kota terbesarmu: ${fmt(state.maxPop)}.`, 'bad', 'lock'); return; }
       if (state.money < d.cost) { sfx.error(); toast(`Kas tidak cukup. Butuh ${money(d.cost)}.`, 'bad', 'coin'); return; }
       setTool(d.id);
+    });
+    const notificationsPanel = $('#notificationsPanel');
+    const notificationsBtn = $('#notificationsBtn');
+    const closeNotifications = () => {
+      notificationsPanel.hidden = true;
+      notificationsBtn.setAttribute('aria-expanded', 'false');
+    };
+    notificationsBtn.onclick = () => {
+      const opening = notificationsPanel.hidden;
+      notificationsPanel.hidden = !opening;
+      notificationsBtn.setAttribute('aria-expanded', String(opening));
+      if (opening) {
+        unreadNotifications = 0;
+        updateNotificationBadge();
+        renderNotifications();
+        sfx.click();
+      }
+    };
+    $('#notificationsClose').onclick = closeNotifications;
+    $('#clearNotificationsBtn').onclick = () => {
+      notificationHistory.length = 0;
+      unreadNotifications = 0;
+      updateNotificationBadge();
+      renderNotifications();
+    };
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !notificationsPanel.hidden) closeNotifications();
     });
     $('#catalogClose').onclick = () => $('#catalog').classList.add('hidden');
     $('#sideBtn').onclick = toggleSide;
