@@ -520,30 +520,190 @@ window.KK = window.KK || {};
   }
 
   function drawCar(ctx, car, time) {
-    const p = iso(car.x + .5, car.y + .5);
-    const dir = car.dir || 'x';
-    const dxs = dir === 'x' ? 1 : dir === '-x' ? -1 : 0;
-    const dys = dir === 'y' ? 1 : dir === '-y' ? -1 : 0;
-    const ang = Math.atan2((dxs + dys) * IY, (dxs - dys) * IX);
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.fillStyle = 'rgba(20,45,30,.22)';
-    ctx.beginPath(); ctx.ellipse(0, 1, 9, 4, ang, 0, 7); ctx.fill();
-    ctx.rotate(ang + Math.PI);
-    ctx.fillStyle = car.color || '#e6563d';
-    roundRect(ctx, -7, -4, 14, 8, 3); ctx.fill();
-    ctx.fillStyle = light(car.color || '#e6563d', .18);
-    roundRect(ctx, -5, -3, 6, 6, 2); ctx.fill();
-    ctx.fillStyle = 'rgba(30,45,55,.55)';
-    roundRect(ctx, 1, -3, 4, 6, 1.5); ctx.fill();
-    ctx.fillStyle = NIGHT > .28 ? '#ffe9a0' : '#f7f2df';
-    ctx.fillRect(-8, -3, 1.6, 2); ctx.fillRect(-8, 1, 1.6, 2);
-    if (NIGHT > .28) {
-      ctx.globalAlpha = .25; ctx.fillStyle = '#ffe9a0';
-      ctx.beginPath(); ctx.moveTo(-8, -2); ctx.lineTo(-20, -7); ctx.lineTo(-20, 4); ctx.closePath(); ctx.fill();
-      ctx.globalAlpha = 1;
+    let hx = car.hx, hy = car.hy;
+    if (hx == null || hy == null || (!hx && !hy)) {
+      const d = car.dir || 'x';
+      hx = d === 'x' ? 1 : d === '-x' ? -1 : 0;
+      hy = d === 'y' ? 1 : d === '-y' ? -1 : 0;
     }
+    const hn = Math.hypot(hx, hy) || 1;
+    hx /= hn; hy /= hn;
+    // Right-hand traffic: shift the body to the right of the lane center.
+    const rx = -hy, ry = hx;
+    const lane = car.lane || 0;
+    const p = iso(car.x + rx * lane, car.y + ry * lane);
+    // Screen basis for the car footprint (forward / right in world tiles).
+    const AX = (hx - hy) * IX, AY = (hx + hy) * IY;
+    const BX = (rx - ry) * IX, BY = (rx + ry) * IY;
+    const len = car.len || .7, wid = car.wid || .34;
+    const hl = len / 2, hw = wid / 2;
+    const bodyH = car.bodyH || 6.4;
+    const cabinH = car.cabinH || 4.2;
+    const baseZ = 1.5;
+    const bodyTop = baseZ + bodyH;
+    const isBus = car.type === 'bus';
+    const isVan = car.type === 'van';
+    const cabinL = hl * (isBus ? .8 : .56);
+    const cabinW = hw * (isBus ? .9 : .82);
+    const cabinOff = -hl * .05;
+    const cabinZ0 = bodyTop - 1.2;
+    const cabinZ1 = bodyTop + cabinH;
+    const P = (s, t, z) => ({
+      x: p.x + AX * s + BX * t,
+      y: p.y + AY * s + BY * t - (z || 0)
+    });
+
+    // Ground shadow, offset slightly with the low sun.
+    const shadow = [P(hl * 1.12, hw * 1.2, 0), P(hl * 1.12, -hw * 1.2, 0), P(-hl * 1.12, -hw * 1.2, 0), P(-hl * 1.12, hw * 1.2, 0)];
+    ctx.save();
+    ctx.translate(2.2, 2.6);
+    poly(ctx, shadow, 'rgba(16,38,30,.22)');
     ctx.restore();
+
+    // Headlight pool on the asphalt at night.
+    if (NIGHT > .2) {
+      const al = Math.hypot(AX, AY) || 1;
+      const ax = AX / al, ay = AY / al;
+      const fx = -ay, fy = ax;
+      const org = P(hl * .96, 0, baseZ + .5);
+      const reach = 30;
+      const beam = ctx.createLinearGradient(org.x, org.y, org.x + ax * reach, org.y + ay * reach);
+      beam.addColorStop(0, 'rgba(255,235,158,.34)');
+      beam.addColorStop(1, 'rgba(255,235,158,0)');
+      poly(ctx, [
+        { x: org.x + fx * 1.6, y: org.y + fy * 1.6 },
+        { x: org.x + ax * reach + fx * 10, y: org.y + ay * reach + fy * 10 },
+        { x: org.x + ax * reach - fx * 10, y: org.y + ay * reach - fy * 10 },
+        { x: org.x - fx * 1.6, y: org.y - fy * 1.6 }
+      ], beam);
+    }
+
+    // Wheels first so the body nicely overlaps their top halves.
+    const wheelAngle = Math.atan2(AY, AX);
+    const wheelRx = isBus ? 2.9 : isVan ? 2.5 : 2.25;
+    for (const s of [-hl * .62, hl * .62]) {
+      for (const t of [-hw * 1.03, hw * 1.03]) {
+        const w = P(s, t, baseZ + .35);
+        ctx.save();
+        ctx.translate(w.x, w.y);
+        ctx.rotate(wheelAngle);
+        ellipse(ctx, 0, 0, wheelRx, 1.25, '#263239', 'rgba(7,16,20,.6)', .5);
+        ctx.fillStyle = 'rgba(196,208,207,.35)';
+        ctx.beginPath(); ctx.arc(0, 0, .45, 0, 7); ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function patch(f, u0, u1, zl, zh, fill) {
+      const sa = lerp(f.a[0], f.b[0], u0), ta = lerp(f.a[1], f.b[1], u0);
+      const sb = lerp(f.a[0], f.b[0], u1), tb = lerp(f.a[1], f.b[1], u1);
+      poly(ctx, [P(sa, ta, zl), P(sb, tb, zl), P(sb, tb, zh), P(sa, ta, zh)], fill, 'rgba(213,240,246,.16)', .45);
+    }
+    function drawCarBox(l, w, z0, z1, colors, detail, off) {
+      const o = off || 0;
+      const defs = [
+        { key: 'front', a: [o + l, w], b: [o + l, -w] },
+        { key: 'back', a: [o - l, -w], b: [o - l, w] },
+        { key: 'sideR', a: [o + l, -w], b: [o - l, -w] },
+        { key: 'sideL', a: [o - l, w], b: [o + l, w] }
+      ];
+      const vis = [];
+      for (const f of defs) {
+        const a = P(f.a[0], f.a[1], z0), b = P(f.b[0], f.b[1], z0);
+        const ex = b.x - a.x, ey = b.y - a.y;
+        let nx = ey, ny = -ex;
+        const mx = (a.x + b.x) / 2 - p.x, my = (a.y + b.y) / 2 - p.y;
+        if (nx * mx + ny * my < 0) { nx = -nx; ny = -ny; }
+        if (ny / (Math.hypot(nx, ny) || 1) < .05) continue;
+        vis.push({ key: f.key, a: f.a, b: f.b, a0: a, b0: b, midY: (a.y + b.y) / 2 });
+      }
+      vis.sort((a, b) => a.midY - b.midY);
+      for (const f of vis) {
+        poly(ctx, [f.a0, f.b0, P(f.b[0], f.b[1], z1), P(f.a[0], f.a[1], z1)],
+          colors[f.key] || colors.side, colors.outline || 'rgba(17,35,42,.18)', .55);
+        if (detail) detail(f, z0, z1);
+      }
+      poly(ctx, [P(o + l, w, z1), P(o + l, -w, z1), P(o - l, -w, z1), P(o - l, w, z1)], colors.top);
+      return vis;
+    }
+
+    const color = car.color || '#e6563d';
+    const bodyVis = drawCarBox(hl, hw, baseZ, bodyTop, {
+      top: light(color, .22),
+      front: shade(color, .9),
+      back: shade(color, .64),
+      sideR: light(color, .04),
+      sideL: shade(color, .72)
+    });
+
+    // Cabin sits on the body with a slightly narrower footprint.
+    drawCarBox(cabinL, cabinW, cabinZ0, cabinZ1, {
+      top: light(color, .32),
+      front: shade(color, .84),
+      back: shade(color, .6),
+      sideR: light(color, .12),
+      sideL: shade(color, .68)
+    }, function (f, z0, z1) {
+      const side = f.key === 'sideL' || f.key === 'sideR';
+      const zl = z0 + (z1 - z0) * (isBus ? .24 : .3) + .25;
+      const zh = z1 - (isBus ? 1.9 : 1.15);
+      const glass = side ? 'rgba(38,69,84,.93)' : 'rgba(49,84,99,.91)';
+      if (side && isBus) {
+        for (let i = 0; i < 4; i++) {
+          const a = .055 + i * .235;
+          patch(f, a, a + .17, zl, zh, glass);
+        }
+      } else if (side && isVan) {
+        patch(f, .08, .44, zl, zh, glass);
+        patch(f, .5, .9, zl, zh, glass);
+      } else if (side) {
+        patch(f, .1, .9, zl, zh, glass);
+      } else {
+        patch(f, .13, .87, zl, zh, glass);
+      }
+      // A soft reflection stripe across the glass.
+      const sa = lerp(f.a[0], f.b[0], .24), ta = lerp(f.a[1], f.b[1], .24);
+      const sb = lerp(f.a[0], f.b[0], .72), tb = lerp(f.a[1], f.b[1], .72);
+      poly(ctx, [P(sa, ta, zl + .6), P(sb, tb, zl + .6), P(sb, tb, zl + 1.25), P(sa, ta, zl + 1.25)],
+        'rgba(225,248,252,.11)');
+    }, cabinOff);
+
+    // Body / roof details.
+    if (car.type === 'taxi') {
+      const z = cabinZ1;
+      const sl = .12, sw = .11;
+      poly(ctx, [P(sl, -sw, z), P(sl, sw, z), P(sl, sw, z + 1.7), P(sl, -sw, z + 1.7)],
+        '#f7f1d2', 'rgba(90,70,20,.4)', .45);
+      poly(ctx, [P(-sl, -sw, z + 1.7), P(sl, -sw, z + 1.7), P(sl, sw, z + 1.7), P(-sl, sw, z + 1.7)],
+        '#fff9df');
+    } else if (isBus) {
+      poly(ctx, [P(-.18, -cabinW * .45, cabinZ1 + .05), P(.12, -cabinW * .45, cabinZ1 + .05),
+        P(.12, cabinW * .45, cabinZ1 + .05), P(-.18, cabinW * .45, cabinZ1 + .05)], '#9ba8a6');
+    } else {
+      poly(ctx, [P(-cabinL * .34, -cabinW * .52, cabinZ1 + .04), P(cabinL * .26, -cabinW * .52, cabinZ1 + .04),
+        P(cabinL * .26, cabinW * .52, cabinZ1 + .04), P(-cabinL * .34, cabinW * .52, cabinZ1 + .04)],
+        'rgba(38,58,68,.24)');
+    }
+
+    // Headlamps and tail lamps only on faces actually turned toward the viewer.
+    const lightZ = baseZ + bodyH * .45;
+    if (bodyVis.some(f => f.key === 'front')) {
+      for (const t of [-hw * .56, hw * .56]) {
+        const q = P(hl * 1.012, t, lightZ);
+        ellipse(ctx, q.x, q.y, 1.35, .95, NIGHT > .2 ? '#fff3b0' : '#f9f2df', 'rgba(20,25,25,.28)', .4);
+        if (NIGHT > .2) {
+          ctx.globalAlpha = .2; ctx.fillStyle = '#ffe9a0';
+          ctx.beginPath(); ctx.arc(q.x, q.y, 3.2, 0, 7); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
+    if (bodyVis.some(f => f.key === 'back')) {
+      for (const t of [-hw * .56, hw * .56]) {
+        const q = P(-hl * 1.012, t, lightZ);
+        ellipse(ctx, q.x, q.y, 1.25, .9, NIGHT > .2 ? '#ff5b4d' : '#d64a3c', 'rgba(20,15,15,.3)', .4);
+      }
+    }
   }
 
   function drawGhost(ctx, ghost, time) {
