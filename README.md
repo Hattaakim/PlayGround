@@ -16,3 +16,13 @@
 - 👤 [Explore the creator's projects](https://go.ondev.store/Hattaakim).
 - 🌍 [Create with OMGithub](https://go.ondev.store/).
 <!-- omgithub:readme:end -->
+
+## Hallway Challenge
+
+A complete browser-playable school maze game inspired by Baldi's Basics. Collect 7 notebooks, answer each arithmetic question, avoid the pursuing teacher, and reach the exit.
+
+- **Move:** WASD or arrow keys
+- **Run:** Hold Space (energy recharges while walking)
+- **Touch:** Use the on-screen direction pad and RUN button on phones/tablets
+- **Play:** Open `index.html` directly, or serve this folder with any static web server.
+

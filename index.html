@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f1df"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='85'%3E✎%3C/text%3E%3C/svg%3E"><title>Baldi's Basics — Hallway Challenge</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><div class="brand-mark">✎</div><div><h1>Baldi's Basics</h1><p>Education &amp; learning · hallway challenge</p></div></div>
+    <div class="header-actions"><button class="icon-btn" id="soundBtn" aria-label="Toggle sound" title="Toggle sound">♫</button><button class="icon-btn" id="restartBtn" aria-label="Restart game" title="Restart">↻</button></div>
+  </header>
+  <main class="layout">
+    <section class="main-card">
+      <div class="hud">
+        <div class="stat"><span class="stat-icon">📚</span><div><strong id="bookCount">0 / 7</strong><small>NOTEBOOKS</small></div></div>
+        <div class="progress-wrap"><div class="progress-label"><span>School day</span><strong id="progressText">0%</strong></div><div class="progress-track"><i id="progressBar"></i></div></div>
+        <div class="stamina"><span>⚡</span><div class="stamina-track"><i id="staminaBar"></i></div></div>
+      </div>
+      <div class="canvas-wrap"><canvas id="game" aria-label="Top-down school game"></canvas>
+        <div class="toast" id="toast">Find the notebooks!</div>
+        <div class="overlay" id="introOverlay"><div class="dialog intro-dialog"><div class="dialog-icon">🏫</div><div class="eyebrow">A very normal school day</div><h2>Make it to the exit.</h2><p>Collect all <b>7 notebooks</b> and solve the problem in each one. Try not to let Baldi catch up!</p><div class="howto"><span><b>MOVE</b> WASD / arrows</span><span><b>RUN</b> hold Space</span></div><button class="primary" id="startBtn">Start exploring <span>→</span></button><small class="touch-hint">On mobile? Use the direction pad below.</small></div></div>
+        <div class="overlay hidden" id="quizOverlay"><div class="dialog quiz-dialog"><div class="eyebrow" id="quizEyebrow">NOTEBOOK 1 OF 7</div><h2 id="quizTitle">Solve this!</h2><div class="equation" id="equation">6 + 4 = ?</div><form id="answerForm"><input id="answerInput" inputmode="numeric" autocomplete="off" placeholder="Your answer" aria-label="Your answer"><button class="primary" type="submit">Check it <span>→</span></button></form><p class="quiz-feedback" id="quizFeedback">One correct answer to go!</p></div></div>
+        <div class="overlay hidden" id="endOverlay"><div class="dialog"><div class="dialog-icon" id="endIcon">🎉</div><div class="eyebrow" id="endEyebrow">SCHOOL'S OUT</div><h2 id="endTitle">You made it!</h2><p id="endCopy">All notebooks collected. The exit is yours.</p><button class="primary" id="playAgainBtn">Play again <span>↻</span></button></div></div>
+      </div>
+      <div class="controls-row"><div class="control-tip"><span class="keycap">W</span><span class="keycap">A</span><span class="keycap">S</span><span class="keycap">D</span><span class="tip-copy">move</span><span class="keycap wide">SPACE</span><span class="tip-copy">run</span></div><div class="sound-note">Listen for the ruler…</div></div>
+      <div class="mobile-pad" aria-label="Touch movement controls"><button data-dir="up" aria-label="Move up">▲</button><div><button data-dir="left" aria-label="Move left">◀</button><button data-dir="down" aria-label="Move down">▼</button><button data-dir="right" aria-label="Move right">▶</button></div><button class="run-touch" id="runTouch">RUN</button></div>
+    </section>
+    <aside>
+      <section class="side-card mission"><div class="side-heading"><span>✦</span><h2>Today's mission</h2></div><p>Collect every notebook, answer the question, and find the school exit.</p><div class="book-grid" id="bookGrid"></div><div class="exit-status" id="exitStatus"><span class="exit-dot"></span><div><b>Exit locked</b><small>Find all 7 notebooks first</small></div><span class="lock">🔒</span></div></section>
+      <section class="side-card tip-card"><div class="tip-title">💡 <b>Hallway tip</b></div><p id="tipText">Keep moving. Running is faster, but your energy takes a moment to recharge.</p></section>
+      <div class="side-footer"><span class="legend-dot player-dot"></span>You <span class="legend-dot baldi-dot"></span>Baldi <span class="legend-dot book-dot"></span>Notebook</div>
+    </aside>
+  </main>
+  <footer>THE SCHOOL IS OPEN · STAY CURIOUS, STAY QUICK</footer>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
