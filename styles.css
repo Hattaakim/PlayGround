@@ -180,12 +180,22 @@ button:focus-visible,input:focus-visible{outline:3px solid #ffcf5f;outline-offse
 }
 #timebar .icon-btn{border:0;background:rgba(255,255,255,.12);width:36px;height:36px;border-radius:10px;color:#fff}
 #timebar .icon-btn:hover{background:rgba(255,255,255,.22)}
-.period-control{display:flex;flex-direction:column;justify-content:center;gap:2px;flex:none}
-.period-control>span{padding-left:3px;color:rgba(222,255,249,.63);font-size:7px;line-height:1;font-weight:900;letter-spacing:.14em}
-#periodSelect{appearance:none;-webkit-appearance:none;height:27px;width:94px;padding:0 25px 0 8px;border:1px solid rgba(255,255,255,.2);border-radius:8px;background-color:rgba(216,255,247,.1);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%23d9fff6' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center;color:#f2fffd;font:800 10px "KotaBody",sans-serif;outline:none;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.13);transition:background-color .18s,border-color .18s,box-shadow .18s}
-#periodSelect:hover{background-color:rgba(216,255,247,.17);border-color:rgba(255,255,255,.34)}
-#periodSelect:focus-visible{box-shadow:0 0 0 2px rgba(255,198,74,.65),inset 0 1px 0 rgba(255,255,255,.16)}
-#periodSelect option{color:#173b3a;background:#f4fffc}
+.period-control{display:flex;flex-direction:column;justify-content:center;gap:4px;flex:none;min-width:0}
+.period-control>span{padding-left:2px;color:rgba(222,255,249,.72);font-size:7px;line-height:1;font-weight:900;letter-spacing:.16em}
+#periodSelect{
+  appearance:none;-webkit-appearance:none;display:block;height:30px;width:102px;flex:none;
+  padding:0 29px 0 10px;border:1px solid rgba(221,255,248,.27);border-radius:9px;
+  background-color:rgba(205,255,245,.14);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%23e3fff8' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center;color:#f5fffd;
+  font:750 10px/1 "KotaBody",sans-serif;letter-spacing:.01em;outline:none;cursor:pointer;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 6px rgba(0,20,23,.12);
+  transition:background-color .18s,border-color .18s,box-shadow .18s,transform .18s
+}
+#periodSelect:hover{background-color:rgba(205,255,245,.22);border-color:rgba(231,255,251,.48)}
+#periodSelect:active{transform:translateY(1px)}
+#periodSelect:focus-visible{border-color:rgba(255,225,138,.8);box-shadow:0 0 0 2px rgba(255,198,74,.4),inset 0 1px 0 rgba(255,255,255,.2)}
+#periodSelect option{color:#173b3a;background:#f4fffc;font-weight:700}
 .speed-group{display:flex;background:rgba(0,0,0,.18);border-radius:9px;padding:3px;gap:2px}
 .speed-group button{height:27px;min-width:32px;border-radius:6px;color:#9fd0ca;font-size:10.5px;font-weight:800;transition:.15s}
 .speed-group button:hover{color:#fff}
@@ -372,7 +382,7 @@ kbd{background:#f0f6f3;border:1px solid var(--line-strong);border-bottom-width:2
   .time-info{min-width:0;flex:1}
   .time-info span{font-size:10px}
   .time-info small{font-size:8.5px;max-width:150px;overflow:hidden;text-overflow:ellipsis}
-  #periodSelect{width:76px;padding:0 4px;font-size:9px}
+  #periodSelect{width:84px;padding:0 25px 0 8px;font-size:9px;background-position:right 7px center}
   .speed-group button{min-width:27px;font-size:9.5px}
   #selectionCard{right:8px;left:8px;bottom:calc(144px + var(--safe-bottom));width:auto;z-index:34}
   #toasts{right:8px;left:8px;bottom:calc(150px + var(--safe-bottom));max-width:none;align-items:stretch}
@@ -535,9 +545,9 @@ kbd{background:#f0f6f3;border:1px solid var(--line-strong);border-bottom-width:2
   content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;
   background:linear-gradient(110deg,rgba(255,255,255,.09),transparent 38%,rgba(132,245,219,.05) 72%,transparent);
 }
-.period-control>span{color:rgba(222,255,249,.7)}
-#periodSelect{border-color:rgba(226,255,250,.25);background-color:rgba(211,255,246,.13)}
-#periodSelect:hover{background-color:rgba(211,255,246,.2)}
+.period-control>span{color:rgba(222,255,249,.76)}
+#periodSelect{border-color:rgba(226,255,250,.3);background-color:rgba(211,255,246,.15)}
+#periodSelect:hover{background-color:rgba(211,255,246,.23)}
 #timebar .time-progress{
   position:absolute;left:0;right:0;bottom:0;height:3px;overflow:hidden;
   background:rgba(216,255,246,.1);pointer-events:none;
@@ -554,15 +564,15 @@ kbd{background:#f0f6f3;border:1px solid var(--line-strong);border-bottom-width:2
 @media(max-width:720px){
   #topbar,#timebar,.panel,#rail,#mobilePanelBtn{-webkit-backdrop-filter:blur(17px) saturate(155%);backdrop-filter:blur(17px) saturate(155%)}
   #timebar{gap:6px;padding:0 8px}
-  .period-control>span{font-size:6px}
-  #periodSelect{width:78px;padding-left:7px;padding-right:20px}
+  .period-control>span{font-size:6.5px}
+  #periodSelect{width:84px;padding-left:8px;padding-right:25px}
   .time-info{min-width:0}
   #timebar .time-progress{height:2px}
 }
 @media(max-width:360px){
   #timebar{gap:4px;padding:0 6px}
   #timebar .icon-btn{width:33px;height:33px}
-  #periodSelect{width:72px;font-size:8px}
+  #periodSelect{width:78px;padding-left:7px;padding-right:23px;font-size:8.5px;background-position:right 7px center}
   .speed-group button{min-width:25px}
   .time-info small{max-width:95px}
 }
