@@ -58,8 +58,30 @@ window.KK = window.KK || {};
   // ---------- utils ----------
   function fmt(n) { return Math.round(n).toLocaleString('id-ID'); }
   function money(n) { return (n < 0 ? '-$' : '$') + fmt(Math.abs(n)); }
-  function idx(x, y) { return y * GRID + x; }
-  function inBounds(x, y) { return x >= 0 && y >= 0 && x < GRID && y < GRID; }
+  function idx(x, y) { return y * (state ? state.gridSize : GRID) + x; }
+  function inBounds(x, y) { const size = state ? state.gridSize : GRID; return x >= 0 && y >= 0 && x < size && y < size; }
+  const MAX_GRID_SIZE = 64;
+  function expansionCost() { return 2500 + Math.max(0, (state.gridSize - GRID) / 8) * 5500; }
+  function expandCity() {
+    if (!state) return;
+    if (state.gridSize >= MAX_GRID_SIZE) { toast('Kota sudah mencapai batas perluasan.', 'info', 'info'); return; }
+    const cost = expansionCost();
+    if (state.money < cost) { sfx.error(); toast(`Kas tidak cukup. Perlu ${money(cost)} untuk memperluas kota.`, 'bad', 'coin'); return; }
+    const oldSize = state.gridSize, newSize = Math.min(MAX_GRID_SIZE, oldSize + 8);
+    const grid = Array.from({ length: newSize * newSize }, () => ({ terrain: 'grass', road: false, b: null }));
+    for (let y = 0; y < oldSize; y++) {
+      for (let x = 0; x < oldSize; x++) grid[y * newSize + x] = state.grid[y * oldSize + x];
+    }
+    state.money -= cost;
+    state.gridSize = newSize;
+    state.grid = grid;
+    recalc();
+    updateAll();
+    clampCam();
+    saveGame(true);
+    sfx.unlock();
+    toast(`Kota diperluas menjadi ${newSize} × ${newSize}!`, 'good', 'unlock');
+  }
   function tileAt(x, y) { return inBounds(x, y) ? state.grid[idx(x, y)] : null; }
   function uid() { state.uid = (state.uid || 0) + 1; return state.uid; }
   function defOf(b) { return DEFS[b.defId]; }
@@ -211,7 +233,7 @@ window.KK = window.KK || {};
   function canPlace(def, x, y, opts) {
     opts = opts || {};
     if (!def) return { ok: false, msg: 'Bangunan tidak dikenal.' };
-    if (x < 0 || y < 0 || x + def.w > GRID || y + def.h > GRID) return { ok: false, msg: 'Di luar batas kota.' };
+    if (x < 0 || y < 0 || x + def.w > state.gridSize || y + def.h > state.gridSize) return { ok: false, msg: 'Di luar batas kota.' };
     let wild = false;
     for (let yy = y; yy < y + def.h; yy++) for (let xx = x; xx < x + def.w; xx++) {
       const t = state.grid[idx(xx, yy)];
@@ -294,7 +316,7 @@ window.KK = window.KK || {};
   // ---------- cars ----------
   function allRoads() {
     const list = [];
-    for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) if (state.grid[idx(x, y)].road) list.push({ x, y });
+    for (let y = 0; y < state.gridSize; y++) for (let x = 0; x < state.gridSize; x++) if (state.grid[idx(x, y)].road) list.push({ x, y });
     return list;
   }
   const CAR_COLORS = ['#e6563d', '#3b8fd4', '#f2c94c', '#4fae62', '#c14b7c', '#f28b3c', '#6b7c8a', '#f7f4ec'];
@@ -437,7 +459,7 @@ window.KK = window.KK || {};
       if (d.happy && d.radius) amenities.push(b);
       if (b.defId === 'solar') hasPower = true;
     }
-    for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) if (state.grid[idx(x, y)].road) roadCount++;
+    for (let y = 0; y < state.gridSize; y++) for (let x = 0; x < state.gridSize; x++) if (state.grid[idx(x, y)].road) roadCount++;
     expense += roadCount * DEFS.road.maint;
     for (const pid in state.policies) {
       const p = KK.POLICIES.find(x => x.id === pid);
@@ -716,7 +738,16 @@ window.KK = window.KK || {};
     $('#demandC').style.width = Math.min(100, state.demandC) + '%';
     $('#demandI').style.width = Math.min(100, state.demandI) + '%';
     $('#missionCount').textContent = `${Object.keys(state.missionsDone).filter(k => KK.MISSIONS.some(m => m.id === k)).length}/10`;
-    $('#miniBadge').textContent = `${state.population} warga`;
+    $('#miniBadge').textContent = `${state.gridSize} × ${state.gridSize} · ${state.population} warga`;
+    const expandBtn = $('#expandBtn');
+    if (expandBtn) {
+      const atLimit = state.gridSize >= MAX_GRID_SIZE;
+      const cost = expansionCost();
+      expandBtn.disabled = atLimit || state.money < cost;
+      expandBtn.innerHTML = atLimit ? 'Batas kota tercapai' : `Perluas kota <span>${money(cost)}</span>`;
+      expandBtn.title = atLimit ? 'Ukuran maksimum 64 × 64' : `Tambah 8 petak ke setiap sisi · ${money(cost)}`;
+      expandBtn.setAttribute('aria-label', atLimit ? 'Ukuran maksimum kota tercapai' : `Perluas kota seharga ${money(cost)}`);
+    }
     // speed / pause
     const pb = $('#pauseBtn');
     pb.innerHTML = icon(state.paused ? 'play' : 'pause');
@@ -780,8 +811,11 @@ window.KK = window.KK || {};
     const w = cv.width, h = cv.height;
     c.clearRect(0, 0, w, h);
     c.fillStyle = '#8ccfe0'; c.fillRect(0, 0, w, h);
-    const pad = 8, cell = (Math.min(w, h) - pad * 2) / GRID;
-    for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) {
+    const size = state.gridSize;
+    const padX = (w - (Math.min(w, h) - 16)) / 2 + 8;
+    const padY = (h - (Math.min(w, h) - 16)) / 2 + 8;
+    const cell = (Math.min(w, h) - 16) / size;
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
       const t = state.grid[idx(x, y)];
       let col = t.terrain === 'water' ? '#3b93b3' : t.terrain === 'sand' ? '#e6d29c' : '#87c568';
       if (t.road) col = '#59626a';
@@ -796,15 +830,15 @@ window.KK = window.KK || {};
         else col = '#6f8f89';
       }
       c.fillStyle = col;
-      c.fillRect(pad + x * cell, pad + y * cell, Math.ceil(cell), Math.ceil(cell));
+      c.fillRect(padX + x * cell, padY + y * cell, Math.ceil(cell), Math.ceil(cell));
     }
     // camera marker (approx)
     const gx = (cam.x / 32 + cam.y / 16) / 2;
     const gy = (cam.y / 16 - cam.x / 32) / 2;
     c.strokeStyle = 'rgba(255,255,255,.95)'; c.lineWidth = 2;
-    c.strokeRect(pad + gx * cell - 8, pad + gy * cell - 8, 16, 16);
+    c.strokeRect(padX + gx * cell - 8, padY + gy * cell - 8, 16, 16);
     c.fillStyle = 'rgba(255,255,255,.9)';
-    c.beginPath(); c.arc(pad + gx * cell, pad + gy * cell, 2.5, 0, 7); c.fill();
+    c.beginPath(); c.arc(padX + gx * cell, padY + gy * cell, 2.5, 0, 7); c.fill();
     // frame
     c.strokeStyle = 'rgba(9,57,62,.15)'; c.lineWidth = 1; c.strokeRect(0, 0, w, h);
   }
@@ -1007,10 +1041,11 @@ window.KK = window.KK || {};
 
   // ---------- save / load ----------
   function serialize() {
+    const size = state.gridSize;
     const roads = [];
-    for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) if (state.grid[idx(x, y)].road) roads.push(y * GRID + x);
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (state.grid[idx(x, y)].road) roads.push(y * size + x);
     return {
-      v: 2, cityName: state.cityName, money: state.money, tick: state.tick, hour: state.hour,
+      v: 2, gridSize: size, cityName: state.cityName, money: state.money, tick: state.tick, hour: state.hour,
       taxRate: state.taxRate, policies: state.policies, uid: state.uid,
       missionsDone: state.missionsDone, won: state.won, maxPop: state.maxPop,
       unlocked: state.unlocked, moodBoost: state.moodBoost, eventTimer: state.eventTimer,
@@ -1036,17 +1071,20 @@ window.KK = window.KK || {};
       const d = JSON.parse(raw);
       if (!d || d.v !== 2) return false;
       state = blankState(d.cityName);
+      const savedSize = Number(d.gridSize);
+      state.gridSize = Number.isInteger(savedSize) && savedSize >= GRID && savedSize <= MAX_GRID_SIZE && (savedSize - GRID) % 8 === 0 ? savedSize : GRID;
       state.money = d.money; state.tick = d.tick; state.hour = d.hour;
       state.taxRate = d.taxRate || 9; state.policies = d.policies || {};
       state.uid = d.uid || 0; state.missionsDone = d.missionsDone || {};
       state.won = !!d.won; state.maxPop = d.maxPop || 0; state.unlocked = d.unlocked || {};
       state.moodBoost = d.moodBoost || 0; state.eventTimer = d.eventTimer || 50;
+      const size = state.gridSize;
       state.grid = [];
-      for (let i = 0; i < GRID * GRID; i++) {
+      for (let i = 0; i < size * size; i++) {
         const ch = d.terrain?.[i] || 'g';
         state.grid.push({ terrain: ch === 'w' ? 'water' : ch === 's' ? 'sand' : 'grass', road: false, b: null });
       }
-      for (const i of d.roads || []) if (state.grid[i]) state.grid[i].road = true;
+      for (const i of d.roads || []) if (Number.isInteger(i) && i >= 0 && i < state.grid.length) state.grid[i].road = true;
       state.buildings = [];
       for (const sb of d.buildings || []) {
         if (!DEFS[sb.d]) continue;
@@ -1066,8 +1104,9 @@ window.KK = window.KK || {};
     return { fx: (wx / 32 + wy / 16) / 2, fy: (wy / 16 - wx / 32) / 2, x: 0, y: 0 };
   }
   function clampCam() {
-    cam.x = clamp(cam.x, -GRID * 32 - 160, GRID * 32 + 160);
-    cam.y = clamp(cam.y, -160, GRID * 32 + 160);
+    const size = state ? state.gridSize : GRID;
+    cam.x = clamp(cam.x, -size * 32 - 160, size * 32 + 160);
+    cam.y = clamp(cam.y, -160, size * 32 + 160);
     cam.zoom = clamp(cam.zoom, .42, 2.4);
   }
   function zoomAt(sx, sy, factor) {
@@ -1269,12 +1308,19 @@ window.KK = window.KK || {};
       state.speed = Number(b.dataset.speed); state.paused = false;
       updateHUD(true); sfx.click();
     });
+    $('#expandBtn')?.addEventListener('click', expandCity);
     $('#minimap').addEventListener('click', e => {
       if (!state) return;
-      const r = e.currentTarget.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
-      const gx = clamp(Math.floor((x * 260 - 8) / 10), 0, GRID - 1);
-      const gy = clamp(Math.floor((y * 260 - 8) / 10), 0, GRID - 1);
+      const cv = e.currentTarget;
+      const r = cv.getBoundingClientRect();
+      const px = (e.clientX - r.left) * cv.width / r.width;
+      const py = (e.clientY - r.top) * cv.height / r.height;
+      const side = Math.min(cv.width, cv.height) - 16;
+      const padX = (cv.width - side) / 2 + 8;
+      const padY = (cv.height - side) / 2 + 8;
+      const cell = side / state.gridSize;
+      const gx = clamp(Math.floor((px - padX) / cell), 0, state.gridSize - 1);
+      const gy = clamp(Math.floor((py - padY) / cell), 0, state.gridSize - 1);
       cam.x = (gx - gy) * 32; cam.y = (gx + gy) * 16;
       clampCam(); sfx.click();
     });
