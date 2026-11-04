@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101510"><title>Last Bell — Hallway Run</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="shell">
+  <header class="topbar"><div class="brand"><span class="brand-mark">✳</span> LAST BELL <span class="subbrand">/ HALLWAY RUN</span></div><div class="top-note"><i class="live-dot"></i>AFTER-HOURS STUDY CLUB</div></header>
+  <div class="layout">
+    <section class="game-area" aria-label="Game area">
+      <canvas id="game" width="960" height="640" aria-label="Top-down school maze game"></canvas>
+      <div id="start-screen" class="screen visible">
+        <div class="eyebrow">A VERY LATE SCHOOL DAY</div><div class="big-title">THE LAST<br><em>PERIOD</em></div>
+        <p>The halls are locked. Seven notebooks are still out there.<br>Find them, finish the problems, and reach the exit before the hall monitor finds you.</p>
+        <button id="start-btn" class="primary">START YOUR RUN <span>→</span></button>
+        <div class="screen-foot">A tiny original classroom-horror game · no downloads needed</div>
+      </div>
+      <div id="quiz-screen" class="screen quiz-screen">
+        <div class="eyebrow">NOTEBOOK CHECK <span id="question-count"></span></div>
+        <h2 id="question-text">What is 4 + 3?</h2><p class="quiz-hint">Solve it quickly. The halls don't stay quiet for long.</p>
+        <div id="answers" class="answers"></div><div id="quiz-feedback" class="feedback" aria-live="polite"></div>
+      </div>
+      <div id="end-screen" class="screen">
+        <div class="eyebrow" id="end-eyebrow">RUN ENDED</div><div class="big-title" id="end-title">CAUGHT.</div>
+        <p id="end-copy">The hall monitor found you.</p><button id="restart-btn" class="primary">TRY AGAIN <span>↻</span></button>
+      </div>
+      <div class="canvas-hud"><span id="objective">FIND A NOTEBOOK <b>·</b> <kbd>E</kbd> TO INTERACT</span><span id="clock">00:00</span></div>
+      <div id="touch-controls" aria-label="Touch controls"><div class="dpad"><button data-dir="up" aria-label="Move up">▲</button><button data-dir="left" aria-label="Move left">◀</button><button data-dir="down" aria-label="Move down">▼</button><button data-dir="right" aria-label="Move right">▶</button></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button id="touch-juice">JUICE</button><button id="touch-sprint">SPRINT</button></div></div>
+    </section>
+    <aside class="side">
+      <div class="section-label">YOUR ASSIGNMENT <span>01</span></div>
+      <div class="notebook-card"><div class="notebook-icon">▤</div><div><div class="stat-label">NOTEBOOKS</div><div class="counter"><span id="book-count">0</span><small> / 7</small></div></div><div class="book-pips" id="book-pips"></div></div>
+      <div class="progress-track"><i id="progress"></i></div>
+      <div class="side-title">DON'T LET THE<br><em>BELL RING.</em></div><p class="side-copy">Collect the books. Answer every problem. Get out.</p>
+      <div class="divider"></div><div class="section-label">FIELD NOTES <span>02</span></div>
+      <div class="note"><b class="note-symbol">⌖</b><div><strong>THE HALL MONITOR</strong><small>Gets faster whenever you miss an answer.</small></div></div>
+      <div class="note"><b class="note-symbol">◉</b><div><strong>JUICE BOX</strong><small>Find one, then press <kbd>Q</kbd> to distract them.</small></div></div>
+      <div class="note"><b class="note-symbol">↗</b><div><strong>THE EXIT</strong><small>It unlocks when all 7 books are done.</small></div></div>
+      <div class="divider"></div><div class="section-label">CONTROLS <span>03</span></div>
+      <div class="controls"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>MOVE</span></div><div><kbd>SHIFT</kbd><span>SPRINT</span></div><div><kbd>E</kbd><span>INTERACT</span></div><div><kbd>Q</kbd><span>USE JUICE</span></div></div>
+      <div class="side-bottom"><span>TIP</span>Keep moving. The monitor follows sound.</div>
+    </aside>
+  </div>
+  <footer class="footer"><span>LAST BELL <b>·</b> BUILD 01</span><span>MADE FOR AFTER-SCHOOL SURVIVORS</span></footer>
+</main>
+<script src="game.js"></script>
+</body></html>
