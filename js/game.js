@@ -5,6 +5,23 @@ window.KK = window.KK || {};
   const $$ = s => Array.from(document.querySelectorAll(s));
   const clamp = KK.render.clamp, lerp = KK.render.lerp;
   const SAVE_KEY = 'kotakita.save.v2';
+  const THEME_KEY = 'kotakita.theme.v1';
+
+  function setTheme(theme, persist = true) {
+    const isDark = theme === 'dark';
+    document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+    const button = $('#themeBtn');
+    if (button) {
+      const label = isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap';
+      button.innerHTML = icon(isDark ? 'sun' : 'moon');
+      button.title = label;
+      button.setAttribute('aria-label', label);
+      button.setAttribute('aria-pressed', String(isDark));
+    }
+    if (persist) {
+      try { localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light'); } catch (e) {}
+    }
+  }
 
   const canvas = $('#scene');
   const ctx = canvas.getContext('2d');
@@ -1317,6 +1334,10 @@ window.KK = window.KK || {};
     $('#policyBtn').onclick = showPolicies;
     $('#helpBtn').onclick = showHelp;
     $('#saveBtn').onclick = () => saveGame(false);
+    $('#themeBtn').onclick = () => {
+      setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+      sfx.click();
+    };
     $('#soundBtn').onclick = () => {
       soundOn = !soundOn;
       audio = null;
@@ -1586,6 +1607,12 @@ window.KK = window.KK || {};
     resize();
     renderRail();
     bindInput();
+    try {
+      const savedTheme = localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+      setTheme(savedTheme, false);
+    } catch (e) {
+      setTheme('light', false);
+    }
     $('#soundBtn').innerHTML = icon('sound');
     if (hasSave()) { $('#continueBtn').hidden = false; }
     const startInput = $('#cityNameInput');
