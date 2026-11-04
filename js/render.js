@@ -220,40 +220,9 @@ window.KK = window.KK || {};
   }
   function drawRoad(ctx, world, x, y, tile) {
     const T = iso(x, y), R = iso(x + 1, y), B = iso(x + 1, y + 1), L = iso(x, y + 1);
-    const C = { x: T.x, y: T.y + 16 };
     const col = '#505a62';
-    // Fill the whole tile uniformly: roads have no curb or painted outer edge.
+    // Keep the road surface clean; vehicles define the lanes as they pass.
     poly(ctx, [T, R, B, L], col);
-    // lane markings
-    const dirs = [
-      ['n', { x: (T.x + R.x) / 2, y: (T.y + R.y) / 2 }],
-      ['e', { x: (R.x + B.x) / 2, y: (R.y + B.y) / 2 }],
-      ['s', { x: (B.x + L.x) / 2, y: (B.y + L.y) / 2 }],
-      ['w', { x: (T.x + L.x) / 2, y: (T.y + L.y) / 2 }]
-    ];
-    let connections = 0;
-    for (const [dir, mid] of dirs) {
-      if (neighbor(world, x, y, dir)?.road) {
-        connections++;
-        line(ctx, C, mid, 'rgba(247,239,209,.72)', 1.5, [5, 5]);
-      }
-    }
-    if (connections >= 3) {
-      ctx.globalAlpha = .5;
-      for (let i = 0; i < 4; i++) {
-        const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-        line(ctx, { x: C.x + Math.cos(a) * 5, y: C.y + Math.sin(a) * 3 }, { x: C.x + Math.cos(a) * 8, y: C.y + Math.sin(a) * 5 }, '#fff', 1.6);
-      }
-      ctx.globalAlpha = 1;
-    }
-    // pebbles
-    ctx.globalAlpha = .15;
-    ctx.fillStyle = '#e8e2d2';
-    for (let i = 0; i < 2; i++) {
-      const px = T.x + 12 + hash(x + i, y) * 34, py = T.y + 12 + hash(x, y + i) * 14;
-      ctx.beginPath(); ctx.arc(px, py, .8, 0, 7); ctx.fill();
-    }
-    ctx.globalAlpha = 1;
   }
 
   // ---------- building primitives ----------
@@ -509,12 +478,82 @@ window.KK = window.KK || {};
     const dir = car.dir || 'x';
     const dxs = dir === 'x' ? 1 : dir === '-x' ? -1 : 0;
     const dys = dir === 'y' ? 1 : dir === '-y' ? -1 : 0;
-    const ang = Math.atan2((dxs + dys) * IY, (dxs - dys) * IX);
+    const vx = (dxs - dys) * IX, vy = (dxs + dys) * IY;
+    const length = Math.hypot(vx, vy) || 1;
+    // Opposing traffic uses opposite sides of the road, leaving room to pass.
+    const lane = 4.8;
+    const ang = Math.atan2(vy, vx);
     ctx.save();
-    ctx.translate(p.x, p.y);
+    ctx.translate(p.x - vy / length * lane, p.y + vx / length * lane);
     ctx.fillStyle = 'rgba(20,45,30,.24)';
-    ctx.beginPath(); ctx.ellipse(0, 2, 11, 5, ang, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, 2, car.type === 'bus' || car.type === 'truck' ? 15 : 11, 5, ang, 0, Math.PI * 2); ctx.fill();
     ctx.rotate(ang + Math.PI);
+
+    if (car.type === 'motorcycle') {
+      // Compact bike with two visible wheels and a helmeted rider.
+      ctx.fillStyle = '#26323a';
+      ctx.beginPath(); ctx.arc(-5, 1, 2.7, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(5, 1, 2.7, 0, Math.PI * 2); ctx.fill();
+      line(ctx, { x: -5, y: 1 }, { x: -1, y: -1 }, '#d8dce0', 1.4);
+      line(ctx, { x: -1, y: -1 }, { x: 2, y: 1 }, '#d8dce0', 1.4);
+      line(ctx, { x: 2, y: 1 }, { x: 5, y: 1 }, '#d8dce0', 1.4);
+      ctx.fillStyle = shade(color, .72);
+      roundRect(ctx, -2.7, -.5, 5.2, 2, 1); ctx.fill();
+      line(ctx, { x: -1.5, y: -1 }, { x: 2, y: -2.3 }, '#313c43', 2.2);
+      ctx.fillStyle = '#344b59';
+      ctx.beginPath(); ctx.ellipse(-.2, -3, 2, 2.8, -.3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#f2c99a';
+      ctx.beginPath(); ctx.arc(-2.2, -5.3, 1.55, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(-2.2, -5.8, 1.7, Math.PI, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff0bd'; ctx.beginPath(); ctx.arc(-6.3, .2, .8, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      return;
+    }
+
+    if (car.type === 'bus') {
+      ctx.fillStyle = '#26323a';
+      for (const x of [-9, 0, 9]) {
+        roundRect(ctx, x - 2, -5.4, 4, 2.5, 1); ctx.fill();
+        roundRect(ctx, x - 2, 3, 4, 2.5, 1); ctx.fill();
+      }
+      ctx.fillStyle = shade(color, .62);
+      roundRect(ctx, -15, -4.7, 30, 9.5, 2); ctx.fill();
+      ctx.fillStyle = color;
+      roundRect(ctx, -14.5, -4.5, 28.5, 7.7, 1.8); ctx.fill();
+      ctx.fillStyle = '#a9d8df';
+      for (let x = -10.5; x <= 6; x += 5.5) {
+        roundRect(ctx, x, -3.4, 4.1, 3.1, .6); ctx.fill();
+      }
+      ctx.fillStyle = '#85bac6';
+      roundRect(ctx, -14, -3.3, 3, 5.5, .6); ctx.fill();
+      line(ctx, { x: 10, y: -3.5 }, { x: 10, y: 3.2 }, 'rgba(255,255,255,.55)', .7);
+      ctx.fillStyle = '#fff0bd'; ctx.fillRect(-15, -2.2, 1.1, 1.2); ctx.fillRect(-15, 1, 1.1, 1.2);
+      ctx.fillStyle = '#c94c43'; ctx.fillRect(14, -2.2, 1, 1); ctx.fillRect(14, 1, 1, 1);
+      ctx.restore();
+      return;
+    }
+
+    if (car.type === 'truck') {
+      ctx.fillStyle = '#26323a';
+      for (const x of [-10, 4, 10]) {
+        roundRect(ctx, x - 2, -5.4, 4, 2.6, 1); ctx.fill();
+        roundRect(ctx, x - 2, 3, 4, 2.6, 1); ctx.fill();
+      }
+      ctx.fillStyle = shade(color, .65);
+      roundRect(ctx, -15, -4.5, 17, 9, 1.2); ctx.fill();
+      ctx.fillStyle = color;
+      roundRect(ctx, -14.5, -4.2, 16, 7.5, 1); ctx.fill();
+      poly(ctx, [{ x: -14, y: -3.4 }, { x: -10, y: -3.7 }, { x: -8.5, y: -2.2 }, { x: -8.5, y: 2.8 }, { x: -14, y: 2.8 }], '#a9d8df');
+      ctx.fillStyle = '#d6ddd8';
+      roundRect(ctx, 2, -4.8, 13, 9.6, .8); ctx.fill();
+      poly(ctx, [{ x: 3, y: -4 }, { x: 13.5, y: -4 }, { x: 13.5, y: 3.7 }, { x: 3, y: 3.7 }], '#e8eee8', shade(color, .76), .7);
+      line(ctx, { x: 5, y: -2.8 }, { x: 12, y: -2.8 }, '#aebbb4', .7);
+      ctx.fillStyle = '#fff0bd'; ctx.fillRect(-15, -2, 1.1, 1.2); ctx.fillRect(-15, 1, 1.1, 1.2);
+      ctx.fillStyle = '#c94c43'; ctx.fillRect(14, -2, 1, 1); ctx.fillRect(14, 1, 1, 1);
+      ctx.restore();
+      return;
+    }
 
     // Tires and the darker lower body give the car a raised, dimensional silhouette.
     ctx.fillStyle = '#26323a';

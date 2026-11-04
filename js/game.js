@@ -349,6 +349,7 @@ window.KK = window.KK || {};
     return list;
   }
   const CAR_COLORS = ['#e6563d', '#3b8fd4', '#f2c94c', '#4fae62', '#c14b7c', '#f28b3c', '#6b7c8a', '#f7f4ec'];
+  const VEHICLE_TYPES = ['car', 'car', 'car', 'motorcycle', 'motorcycle', 'bus', 'truck'];
   function newCar(tx, ty) {
     const choices = [];
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -357,9 +358,12 @@ window.KK = window.KK || {};
     }
     if (!choices.length) return null;
     const c = choices[Math.floor(Math.random() * choices.length)];
+    const type = VEHICLE_TYPES[Math.floor(Math.random() * VEHICLE_TYPES.length)];
+    const speed = .45 + Math.random() * .35;
     return {
       x: tx + .5, y: ty + .5, fromX: tx + .5, fromY: ty + .5, toX: c.x + .5, toY: c.y + .5,
-      t: 0, speed: .45 + Math.random() * .35, color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
+      t: 0, speed: speed * (type === 'bus' || type === 'truck' ? .78 : type === 'motorcycle' ? 1.12 : 1),
+      type, color: type === 'bus' ? '#e5b83f' : type === 'truck' ? '#4d9b78' : CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
       dir: c.dx > 0 ? 'x' : c.dx < 0 ? '-x' : c.dy > 0 ? 'y' : '-y', alive: true
     };
   }
@@ -1489,9 +1493,11 @@ window.KK = window.KK || {};
         .filter(c => c.x >= 0 && c.y >= 0 && c.x < size && c.y < size && grid[c.y * size + c.x].road);
       if (!choices.length) continue;
       const c = choices[i % choices.length];
+      const type = ['car', 'motorcycle', 'bus', 'truck'][i % 4];
       w.cars.push({
         x: r.x + .5, y: r.y + .5, fromX: r.x + .5, fromY: r.y + .5, toX: c.x + .5, toY: c.y + .5, t: Math.random(),
-        speed: .3 + Math.random() * .35, color: CAR_COLORS[i % CAR_COLORS.length],
+        speed: (.3 + Math.random() * .35) * (type === 'bus' || type === 'truck' ? .78 : type === 'motorcycle' ? 1.12 : 1),
+        type, color: type === 'bus' ? '#e5b83f' : type === 'truck' ? '#4d9b78' : CAR_COLORS[i % CAR_COLORS.length],
         dir: c.dx > 0 ? 'x' : c.dx < 0 ? '-x' : c.dy > 0 ? 'y' : '-y'
       });
     }
