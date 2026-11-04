@@ -221,22 +221,9 @@ window.KK = window.KK || {};
   function drawRoad(ctx, world, x, y, tile) {
     const T = iso(x, y), R = iso(x + 1, y), B = iso(x + 1, y + 1), L = iso(x, y + 1);
     const C = { x: T.x, y: T.y + 16 };
-    const col = hash(x, y) > .5 ? '#505a62' : '#4b555d';
+    const col = '#505a62';
+    // Fill the whole tile uniformly: roads have no curb or painted outer edge.
     poly(ctx, [T, R, B, L], col);
-    // curb / sidewalk on exposed edges
-    const insetPt = p => ({ x: lerp(p.x, C.x, .14), y: lerp(p.y, C.y, .14) });
-    const edges = [
-      ['n', T, R], ['e', R, B], ['s', B, L], ['w', L, T]
-    ];
-    for (const [dir, a, b] of edges) {
-      const n = neighbor(world, x, y, dir);
-      if (!n || !n.road) {
-        poly(ctx, [a, b, insetPt(b), insetPt(a)], '#cfc8b7');
-      }
-    }
-    // asphalt center
-    const c2 = [T, R, B, L].map(p => ({ x: lerp(p.x, C.x, .1), y: lerp(p.y, C.y, .1) }));
-    poly(ctx, c2, col);
     // lane markings
     const dirs = [
       ['n', { x: (T.x + R.x) / 2, y: (T.y + R.y) / 2 }],
@@ -516,7 +503,8 @@ window.KK = window.KK || {};
   }
 
   function drawCar(ctx, car, time) {
-    const p = iso(car.x + .5, car.y + .5);
+    // Simulation coordinates already point to the center of the current road tile.
+    const p = iso(car.x, car.y);
     const color = car.color || '#e6563d';
     const dir = car.dir || 'x';
     const dxs = dir === 'x' ? 1 : dir === '-x' ? -1 : 0;
