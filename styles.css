@@ -131,6 +131,11 @@ button:focus-visible,input:focus-visible{outline:3px solid #ffcf5f;outline-offse
 .mini-wrap{position:relative;border-radius:13px;overflow:hidden;border:1px solid var(--line);background:#8ed3e2;height:144px}
 #minimap{width:100%;height:100%;display:block;cursor:pointer}
 .mini-badge{position:absolute;right:7px;bottom:6px;background:rgba(7,47,51,.75);color:#d8f4ef;font-size:8px;font-weight:700;letter-spacing:.05em;padding:3px 6px;border-radius:5px;pointer-events:none}
+.expand-city-wrap{padding:9px 0 2px}
+.expand-city-wrap .soft-btn{justify-content:space-between;padding:0 12px}
+.expand-city-wrap .soft-btn span{font-size:10px}
+.expand-city-wrap .soft-btn:disabled{opacity:.52;cursor:not-allowed;filter:grayscale(.25)}
+.expand-city-wrap small{display:block;padding:5px 2px 0;color:var(--ink-faint);font-size:9px}
 .side-section{padding:12px 0;border-bottom:1px solid var(--line)}
 .section-label{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)}
 .row-between{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11.5px}
