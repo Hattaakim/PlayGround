@@ -131,11 +131,14 @@
 
     <div id="timebar" class="panel">
       <button class="icon-btn round" id="pauseBtn" aria-label="Jeda"><svg class="ic"><use href="#i-pause"/></svg></button>
-      <select id="periodSelect" aria-label="Periode simulasi" title="Panjang satu langkah simulasi; ekonomi dan pertumbuhan menyesuaikan durasi">
-        <option value="day">Harian</option>
-        <option value="week" selected>Mingguan</option>
-        <option value="month">Bulanan</option>
-      </select>
+      <label class="period-control">
+        <span>PERIODE</span>
+        <select id="periodSelect" aria-label="Periode simulasi" title="Panjang satu langkah simulasi; ekonomi dan pertumbuhan menyesuaikan durasi">
+          <option value="day">Harian</option>
+          <option value="week" selected>Mingguan</option>
+          <option value="month">Bulanan</option>
+        </select>
+      </label>
       <div class="speed-group" id="speedGroup" aria-label="Kecepatan waktu">
         <button data-speed="1" class="active">1×</button>
         <button data-speed="2">2×</button>
@@ -143,6 +146,7 @@
       </div>
       <div class="time-sep"></div>
       <div class="time-info"><span id="weekLabel">Minggu 1</span><small id="nextUnlock">Bangun kotamu dari nol</small></div>
+      <div class="time-progress" aria-hidden="true"><i></i></div>
     </div>
 
     <div id="toasts" aria-live="polite"></div>

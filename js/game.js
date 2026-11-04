@@ -104,7 +104,13 @@ window.KK = window.KK || {};
   }
   const PERIOD_DAYS = { day: 1, week: 7, month: 30 };
   const PERIOD_LABELS = { day: 'Hari', week: 'Minggu', month: 'Bulan' };
+  const BASE_TICK_SECONDS = 2.4;
   function periodScale() { return (PERIOD_DAYS[state.period] || PERIOD_DAYS.week) / 7; }
+  function tickInterval() {
+    const days = PERIOD_DAYS[state?.period] || PERIOD_DAYS.week;
+    // Coarser periods take a little longer, making each calendar jump readable.
+    return BASE_TICK_SECONDS * (1 + .2 * Math.log2(days));
+  }
   function periodNumber() {
     return Math.floor((state.elapsedDays || 0) / (PERIOD_DAYS[state.period] || PERIOD_DAYS.week)) + 1;
   }
@@ -761,6 +767,7 @@ window.KK = window.KK || {};
     pb.innerHTML = icon(state.paused ? 'play' : 'pause');
     $$('#speedGroup button').forEach(b => b.classList.toggle('active', Number(b.dataset.speed) === state.speed));
     $('#periodSelect').value = PERIOD_DAYS[state.period] ? state.period : 'week';
+    $('#periodSelect').title = `Satu langkah memajukan ${PERIOD_DAYS[state.period] || PERIOD_DAYS.week} hari. Kecepatan ${state.speed}×.`;
     // tool / unlock info
     let hint;
     if (state.tool && state.tool !== 'bulldoze' && DEFS[state.tool]) {
@@ -1325,8 +1332,9 @@ window.KK = window.KK || {};
     });
     $('#periodSelect').addEventListener('change', e => {
       if (!state || !PERIOD_DAYS[e.target.value]) return;
+      const progress = clamp(simAcc / tickInterval(), 0, 1);
       state.period = e.target.value;
-      simAcc = 0;
+      simAcc = progress * tickInterval();
       updateHUD(true); saveGame(true); sfx.click();
     });
     $('#expandBtn')?.addEventListener('click', expandCity);
@@ -1409,8 +1417,10 @@ window.KK = window.KK || {};
       updateCars(dt * state.speed);
       simAcc += dt * state.speed;
       let steps = 0;
-      while (simAcc >= 1.5 && steps < 5) { simAcc -= 1.5; simulateTick(); steps++; }
+      const interval = tickInterval();
+      while (simAcc >= interval && steps < 5) { simAcc -= interval; simulateTick(); steps++; }
     }
+    $('#timebar').style.setProperty('--time-progress', `${clamp(simAcc / tickInterval(), 0, 1) * 100}%`);
     const nf = nightFactor(state.hour);
     KK.render.drawWorld(ctx, state, cam, viewW, viewH, cam.zoom, now / 1000, {
       dpr, night: nf.night, dusk: nf.dusk, ghost: buildGhost(), selected: state.selected
