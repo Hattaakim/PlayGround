@@ -367,51 +367,85 @@ window.KK = window.KK || {};
       dir: c.dx > 0 ? 'x' : c.dx < 0 ? '-x' : c.dy > 0 ? 'y' : '-y', alive: true
     };
   }
+  function carShape(car) {
+    const dx = car.dir === 'x' ? 1 : car.dir === '-x' ? -1 : 0;
+    const dy = car.dir === 'y' ? 1 : car.dir === '-y' ? -1 : 0;
+    const vx = (dx - dy) * 32, vy = (dx + dy) * 16;
+    const length = Math.hypot(vx, vy) || 1;
+    const ux = vx / length, uy = vy / length;
+    const px = (car.x - car.y) * 32 - uy * 4.8;
+    const py = (car.x + car.y) * 16 + ux * 4.8;
+    const halfLength = car.type === 'bus' || car.type === 'truck' ? 16 : car.type === 'motorcycle' ? 6.5 : 10;
+    return { x: px, y: py, ux, uy, halfLength, halfWidth: 4.6 };
+  }
+  function carsOverlap(a, b) {
+    const sa = carShape(a), sb = carShape(b);
+    const axes = [[sa.ux, sa.uy], [-sa.uy, sa.ux], [sb.ux, sb.uy], [-sb.uy, sb.ux]];
+    for (const [ax, ay] of axes) {
+      const distance = Math.abs((sb.x - sa.x) * ax + (sb.y - sa.y) * ay);
+      const ra = sa.halfLength * Math.abs(sa.ux * ax + sa.uy * ay) + sa.halfWidth * Math.abs(-sa.uy * ax + sa.ux * ay);
+      const rb = sb.halfLength * Math.abs(sb.ux * ax + sb.uy * ay) + sb.halfWidth * Math.abs(-sb.uy * ax + sb.ux * ay);
+      if (distance >= ra + rb) return false;
+    }
+    return true;
+  }
+  function nextCarState(car, dt, size, isRoad) {
+    const next = { ...car };
+    next.t += dt * next.speed;
+    if (next.t >= 1) {
+      const tx = Math.round(next.toX - .5), ty = Math.round(next.toY - .5);
+      next.fromX = next.toX; next.fromY = next.toY;
+      const choices = [];
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = tx + dx, ny = ty + dy;
+        if (nx >= 0 && ny >= 0 && nx < size && ny < size && isRoad(nx, ny)) choices.push({ x: nx, y: ny, dx, dy });
+      }
+      if (!choices.length) { next.alive = false; return next; }
+      const prevDx = Math.sign(next.toX - next.fromX), prevDy = Math.sign(next.toY - next.fromY);
+      const forward = choices.filter(pick => pick.dx !== -prevDx || pick.dy !== -prevDy);
+      const options = forward.length ? forward : choices;
+      const pick = options[Math.floor(Math.random() * options.length)];
+      next.toX = pick.x + .5; next.toY = pick.y + .5;
+      next.dir = pick.dx > 0 ? 'x' : pick.dx < 0 ? '-x' : pick.dy > 0 ? 'y' : '-y';
+      next.t = 0;
+    }
+    next.x = lerp(next.fromX, next.toX, next.t);
+    next.y = lerp(next.fromY, next.toY, next.t);
+    return next;
+  }
   function spawnCars(initial) {
     const roads = allRoads();
     if (!roads.length) return;
     const cap = Math.min(16, Math.floor(roads.length / 2.4));
-    while (state.cars.length < cap) {
+    let attempts = 0;
+    while (state.cars.length < cap && attempts++ < cap * 24) {
       const r = roads[Math.floor(Math.random() * roads.length)];
       const c = newCar(r.x, r.y);
-      if (!c) break;
+      if (!c) continue;
       c.t = initial ? Math.random() : 0;
       c.x = lerp(c.fromX, c.toX, c.t); c.y = lerp(c.fromY, c.toY, c.t);
+      if (state.cars.some(other => carsOverlap(c, other))) continue;
       state.cars.push(c);
-      if (state.cars.length > 40) break;
     }
   }
   function ensureCars() { spawnCars(); }
   function updateCars(dt) {
     if (!state || !state.cars) return;
+    const isRoad = (x, y) => state.grid[idx(x, y)].road;
     for (const c of state.cars) {
       if (!c.alive) continue;
-      c.t += dt * c.speed;
-      if (c.t >= 1) {
-        const tx = Math.round(c.toX - .5), ty = Math.round(c.toY - .5);
-        c.fromX = c.toX; c.fromY = c.toY;
-        const choices = [];
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          const nx = tx + dx, ny = ty + dy;
-          if (inBounds(nx, ny) && state.grid[idx(nx, ny)].road) choices.push({ x: nx, y: ny, dx, dy });
-        }
-        if (!choices.length) { c.alive = false; continue; }
-        const prevDx = Math.sign(c.toX - c.fromX), prevDy = Math.sign(c.toY - c.fromY);
-        const forward = choices.filter(pick => pick.dx !== -prevDx || pick.dy !== -prevDy);
-        const options = forward.length ? forward : choices;
-        const pick = options[Math.floor(Math.random() * options.length)];
-        c.toX = pick.x + .5; c.toY = pick.y + .5;
-        c.dir = pick.dx > 0 ? 'x' : pick.dx < 0 ? '-x' : pick.dy > 0 ? 'y' : '-y';
-        c.t = 0;
-      }
-      c.x = lerp(c.fromX, c.toX, c.t);
-      c.y = lerp(c.fromY, c.toY, c.t);
+      const next = nextCarState(c, dt, state.gridSize, isRoad);
+      if (state.cars.some(other => other !== c && carsOverlap(next, other))) continue;
+      Object.assign(c, next);
     }
     state.cars = state.cars.filter(c => c.alive);
     const roads = allRoads();
     if (state.cars.length < Math.min(14, Math.floor(roads.length / 2.4)) && Math.random() < .02) {
       const r = roads[Math.floor(Math.random() * roads.length)];
-      if (r) { const c = newCar(r.x, r.y); if (c) state.cars.push(c); }
+      if (r) {
+        const c = newCar(r.x, r.y);
+        if (c && !state.cars.some(other => carsOverlap(c, other))) state.cars.push(c);
+      }
     }
   }
 
@@ -1492,40 +1526,29 @@ window.KK = window.KK || {};
       const choices = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => ({ x: r.x + dx, y: r.y + dy, dx, dy }))
         .filter(c => c.x >= 0 && c.y >= 0 && c.x < size && c.y < size && grid[c.y * size + c.x].road);
       if (!choices.length) continue;
-      const c = choices[i % choices.length];
+      const nextTile = choices[i % choices.length];
       const type = ['car', 'motorcycle', 'bus', 'truck'][i % 4];
-      w.cars.push({
-        x: r.x + .5, y: r.y + .5, fromX: r.x + .5, fromY: r.y + .5, toX: c.x + .5, toY: c.y + .5, t: Math.random(),
+      const t = Math.random();
+      const car = {
+        x: lerp(r.x + .5, nextTile.x + .5, t), y: lerp(r.y + .5, nextTile.y + .5, t),
+        fromX: r.x + .5, fromY: r.y + .5, toX: nextTile.x + .5, toY: nextTile.y + .5, t,
         speed: (.3 + Math.random() * .35) * (type === 'bus' || type === 'truck' ? .78 : type === 'motorcycle' ? 1.12 : 1),
         type, color: type === 'bus' ? '#e5b83f' : type === 'truck' ? '#4d9b78' : CAR_COLORS[i % CAR_COLORS.length],
-        dir: c.dx > 0 ? 'x' : c.dx < 0 ? '-x' : c.dy > 0 ? 'y' : '-y'
-      });
+        dir: nextTile.dx > 0 ? 'x' : nextTile.dx < 0 ? '-x' : nextTile.dy > 0 ? 'y' : '-y', alive: true
+      };
+      if (!w.cars.some(other => carsOverlap(car, other))) w.cars.push(car);
     }
     return w;
   }
   function updateHeroCars(dt) {
     if (!heroWorld) return;
+    const isRoad = (x, y) => heroWorld.grid[y * heroWorld.gridSize + x].road;
     for (const c of heroWorld.cars) {
-      c.t += dt * c.speed;
-      if (c.t >= 1) {
-        const tx = Math.round(c.toX - .5), ty = Math.round(c.toY - .5);
-        c.fromX = c.toX; c.fromY = c.toY;
-        const choices = [];
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          const nx = tx + dx, ny = ty + dy;
-          if (nx >= 0 && ny >= 0 && nx < heroWorld.gridSize && ny < heroWorld.gridSize && heroWorld.grid[ny * heroWorld.gridSize + nx].road) choices.push({ x: nx, y: ny, dx, dy });
-        }
-        if (!choices.length) { c.t = 0; continue; }
-        const prevDx = Math.sign(c.toX - c.fromX), prevDy = Math.sign(c.toY - c.fromY);
-        const forward = choices.filter(pick => pick.dx !== -prevDx || pick.dy !== -prevDy);
-        const options = forward.length ? forward : choices;
-        const p = options[Math.floor(Math.random() * options.length)];
-        c.toX = p.x + .5; c.toY = p.y + .5;
-        c.dir = p.dx > 0 ? 'x' : p.dx < 0 ? '-x' : p.dy > 0 ? 'y' : '-y';
-        c.t = 0;
-      }
-      c.x = lerp(c.fromX, c.toX, c.t); c.y = lerp(c.fromY, c.toY, c.t);
+      const next = nextCarState(c, dt, heroWorld.gridSize, isRoad);
+      if (heroWorld.cars.some(other => other !== c && carsOverlap(next, other))) continue;
+      Object.assign(c, next);
     }
+    heroWorld.cars = heroWorld.cars.filter(c => c.alive);
   }
   function layoutHero() {
     const hw = heroCanvas.clientWidth || innerWidth, hh = heroCanvas.clientHeight || innerHeight;
