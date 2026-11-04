@@ -27,6 +27,7 @@
     <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.5 9.2a2.6 2.6 0 1 1 4.1 2.1c-.9.7-1.6 1.2-1.6 2.5"/><path d="M12 17h.01"/></symbol>
     <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V4M4 20h16"/><path d="M8 16v-4M12 16V8M16 16v-7M20 16V6"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></symbol>
     <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m4 12.5 5 5L20 6.5"/></symbol>
@@ -66,6 +67,7 @@
         <div class="stat" title="Air terpakai / kapasitas"><svg class="ic"><use href="#i-drop"/></svg><span id="statWater">0/0</span></div>
       </div>
       <div class="top-actions">
+        <button class="icon-btn notification-toggle" id="notificationsBtn" type="button" title="Notifikasi" aria-label="Notifikasi" aria-expanded="false" aria-controls="notificationsPanel"><svg class="ic"><use href="#i-bell"/></svg><span class="notification-badge" id="notificationBadge" hidden></span></button>
         <button class="icon-btn" id="themeBtn" type="button" title="Aktifkan mode gelap" aria-label="Aktifkan mode gelap"><svg class="ic"><use href="#i-moon"/></svg></button>
         <button class="icon-btn" id="soundBtn" title="Suara" aria-label="Suara"><svg class="ic"><use href="#i-sound"/></svg></button>
         <button class="icon-btn" id="saveBtn" title="Simpan kota" aria-label="Simpan"><svg class="ic"><use href="#i-save"/></svg></button>
@@ -73,6 +75,17 @@
         <button class="icon-btn side-toggle" id="sideBtn" title="Panel kota" aria-label="Panel kota"><svg class="ic"><use href="#i-chart"/></svg></button>
       </div>
     </header>
+
+    <section id="notificationsPanel" class="panel notifications-panel" aria-label="Notifikasi kota" hidden>
+      <div class="notifications-head">
+        <div><div class="eyebrow">KABAR KOTA</div><h2>Notifikasi</h2></div>
+        <div class="notifications-actions">
+          <button class="text-btn" id="clearNotificationsBtn" type="button">Bersihkan</button>
+          <button class="icon-btn ghost" id="notificationsClose" type="button" aria-label="Tutup notifikasi"><svg class="ic"><use href="#i-close"/></svg></button>
+        </div>
+      </div>
+      <div class="notifications-list" id="notificationsList" role="log" aria-live="polite"><div class="notifications-empty">Belum ada notifikasi. Kabar kota akan muncul di sini.</div></div>
+    </section>
 
     <nav id="rail" aria-label="Menu pembangunan"></nav>
 
