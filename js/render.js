@@ -205,9 +205,11 @@ window.KK = window.KK || {};
       ctx.globalAlpha = 1;
     }
   }
+  // Directions match the four visible diamond edges: n=T-R (+x), e=R-B (+y),
+  // s=B-L (-x), and w=L-T (-y).
   function neighbor(world, x, y, dir) {
-    const dx = dir === 'n' ? -1 : dir === 's' ? 1 : 0;
-    const dy = dir === 'w' ? -1 : dir === 'e' ? 1 : 0;
+    const dx = dir === 'n' ? 1 : dir === 's' ? -1 : 0;
+    const dy = dir === 'e' ? 1 : dir === 'w' ? -1 : 0;
     const nx = x + dx, ny = y + dy;
     if (nx < 0 || ny < 0 || nx >= world.gridSize || ny >= world.gridSize) return null;
     return world.grid[ny * world.gridSize + nx];
@@ -236,12 +238,6 @@ window.KK = window.KK || {};
     const c2 = [T, R, B, L].map(p => ({ x: lerp(p.x, C.x, .1), y: lerp(p.y, C.y, .1) }));
     poly(ctx, c2, col);
     // lane markings
-    const mids = {
-      n: { x: (T.x + L.x) / 2, y: (T.y + L.y) / 2 },
-      e: { x: (R.x + B.x) / 2, y: (R.y + B.y) / 2 },
-      s: { x: (B.x + L.x) / 2, y: (B.y + L.y) / 2 },
-      w: { x: (T.x + L.x) / 2, y: (T.y + L.y) / 2 }
-    };
     const dirs = [
       ['n', { x: (T.x + R.x) / 2, y: (T.y + R.y) / 2 }],
       ['e', { x: (R.x + B.x) / 2, y: (R.y + B.y) / 2 }],
