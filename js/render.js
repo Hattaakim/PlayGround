@@ -521,26 +521,60 @@ window.KK = window.KK || {};
 
   function drawCar(ctx, car, time) {
     const p = iso(car.x + .5, car.y + .5);
+    const color = car.color || '#e6563d';
     const dir = car.dir || 'x';
     const dxs = dir === 'x' ? 1 : dir === '-x' ? -1 : 0;
     const dys = dir === 'y' ? 1 : dir === '-y' ? -1 : 0;
     const ang = Math.atan2((dxs + dys) * IY, (dxs - dys) * IX);
     ctx.save();
     ctx.translate(p.x, p.y);
-    ctx.fillStyle = 'rgba(20,45,30,.22)';
-    ctx.beginPath(); ctx.ellipse(0, 1, 9, 4, ang, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(20,45,30,.24)';
+    ctx.beginPath(); ctx.ellipse(0, 2, 11, 5, ang, 0, Math.PI * 2); ctx.fill();
     ctx.rotate(ang + Math.PI);
-    ctx.fillStyle = car.color || '#e6563d';
-    roundRect(ctx, -7, -4, 14, 8, 3); ctx.fill();
-    ctx.fillStyle = light(car.color || '#e6563d', .18);
-    roundRect(ctx, -5, -3, 6, 6, 2); ctx.fill();
-    ctx.fillStyle = 'rgba(30,45,55,.55)';
-    roundRect(ctx, 1, -3, 4, 6, 1.5); ctx.fill();
-    ctx.fillStyle = NIGHT > .28 ? '#ffe9a0' : '#f7f2df';
-    ctx.fillRect(-8, -3, 1.6, 2); ctx.fillRect(-8, 1, 1.6, 2);
+
+    // Tires and the darker lower body give the car a raised, dimensional silhouette.
+    ctx.fillStyle = '#26323a';
+    roundRect(ctx, -6.5, -5, 4.5, 2.6, 1); ctx.fill();
+    roundRect(ctx, 3, -5, 4.5, 2.6, 1); ctx.fill();
+    roundRect(ctx, -6.5, 2.7, 4.5, 2.6, 1); ctx.fill();
+    roundRect(ctx, 3, 2.7, 4.5, 2.6, 1); ctx.fill();
+    poly(ctx, [
+      { x: -9, y: -2.8 }, { x: 6.5, y: -3.4 }, { x: 9, y: -1.5 },
+      { x: 8, y: 3.4 }, { x: -7, y: 4 }, { x: -9, y: 1.8 }
+    ], shade(color, .62), '#26323a', .7);
+    poly(ctx, [
+      { x: -8.5, y: -3.2 }, { x: 6.2, y: -3.8 }, { x: 8, y: -1.6 },
+      { x: 7, y: 2.1 }, { x: -7.5, y: 2.7 }, { x: -8.8, y: .8 }
+    ], color, shade(color, .68), .6);
+
+    // Hood, cabin glass and roof highlights read clearly at the game's small scale.
+    poly(ctx, [
+      { x: -8, y: -2.5 }, { x: -5.3, y: -3 }, { x: -4.8, y: 2.4 },
+      { x: -7.5, y: 2.2 }, { x: -8.7, y: .6 }
+    ], light(color, .2));
+    poly(ctx, [
+      { x: -4.8, y: -3 }, { x: 2.5, y: -3.3 }, { x: 4.3, y: -1.7 },
+      { x: 3.8, y: 2.3 }, { x: -4.8, y: 2.5 }
+    ], shade(color, .78));
+    poly(ctx, [
+      { x: -4, y: -2.5 }, { x: -1.1, y: -2.7 }, { x: -.9, y: 1.8 },
+      { x: -4.1, y: 1.9 }
+    ], '#b9dce2');
+    poly(ctx, [
+      { x: -.3, y: -2.7 }, { x: 2.3, y: -2.8 }, { x: 3.5, y: -1.6 },
+      { x: 3.2, y: 1.8 }, { x: -.4, y: 1.9 }
+    ], '#84b9c5');
+    line(ctx, { x: -.7, y: -2.7 }, { x: -.5, y: 1.9 }, 'rgba(255,255,255,.55)', .6);
+    line(ctx, { x: -7, y: -2.2 }, { x: -5.5, y: -2.5 }, 'rgba(255,255,255,.65)', .7);
+
+    ctx.fillStyle = NIGHT > .28 ? '#ffe9a0' : '#fff3ce';
+    roundRect(ctx, -9, -2.1, 1.5, 1.4, .5); ctx.fill();
+    roundRect(ctx, -9, .8, 1.5, 1.4, .5); ctx.fill();
+    ctx.fillStyle = '#c94c43';
+    ctx.fillRect(7, -2, 1.2, 1.2); ctx.fillRect(7, 1.2, 1.2, 1.2);
     if (NIGHT > .28) {
-      ctx.globalAlpha = .25; ctx.fillStyle = '#ffe9a0';
-      ctx.beginPath(); ctx.moveTo(-8, -2); ctx.lineTo(-20, -7); ctx.lineTo(-20, 4); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = .24; ctx.fillStyle = '#ffe9a0';
+      ctx.beginPath(); ctx.moveTo(-9, -1.5); ctx.lineTo(-22, -7); ctx.lineTo(-22, 4); ctx.closePath(); ctx.fill();
       ctx.globalAlpha = 1;
     }
     ctx.restore();

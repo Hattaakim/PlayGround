@@ -389,13 +389,13 @@ window.KK = window.KK || {};
         const choices = [];
         for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
           const nx = tx + dx, ny = ty + dy;
-          if (inBounds(nx, ny) && state.grid[idx(nx, ny)].road) {
-            if (dx === -c.dx && dy === -c.dy && choices.length) continue;
-            choices.push({ x: nx, y: ny, dx, dy });
-          }
+          if (inBounds(nx, ny) && state.grid[idx(nx, ny)].road) choices.push({ x: nx, y: ny, dx, dy });
         }
         if (!choices.length) { c.alive = false; continue; }
-        const pick = choices[Math.floor(Math.random() * choices.length)];
+        const prevDx = Math.sign(c.toX - c.fromX), prevDy = Math.sign(c.toY - c.fromY);
+        const forward = choices.filter(pick => pick.dx !== -prevDx || pick.dy !== -prevDy);
+        const options = forward.length ? forward : choices;
+        const pick = options[Math.floor(Math.random() * options.length)];
         c.toX = pick.x + .5; c.toY = pick.y + .5;
         c.dir = pick.dx > 0 ? 'x' : pick.dx < 0 ? '-x' : pick.dy > 0 ? 'y' : '-y';
         c.t = 0;
@@ -1441,7 +1441,6 @@ window.KK = window.KK || {};
       const interval = tickInterval();
       while (simAcc >= interval && steps < 5) { simAcc -= interval; simulateTick(); steps++; }
     }
-    $('#timebar').style.setProperty('--time-progress', `${clamp(simAcc / tickInterval(), 0, 1) * 100}%`);
     const nf = nightFactor(state.hour);
     KK.render.drawWorld(ctx, state, cam, viewW, viewH, cam.zoom, now / 1000, {
       dpr, night: nf.night, dusk: nf.dusk, ghost: buildGhost(), selected: state.selected
@@ -1511,7 +1510,10 @@ window.KK = window.KK || {};
           if (nx >= 0 && ny >= 0 && nx < heroWorld.gridSize && ny < heroWorld.gridSize && heroWorld.grid[ny * heroWorld.gridSize + nx].road) choices.push({ x: nx, y: ny, dx, dy });
         }
         if (!choices.length) { c.t = 0; continue; }
-        const p = choices[Math.floor(Math.random() * choices.length)];
+        const prevDx = Math.sign(c.toX - c.fromX), prevDy = Math.sign(c.toY - c.fromY);
+        const forward = choices.filter(pick => pick.dx !== -prevDx || pick.dy !== -prevDy);
+        const options = forward.length ? forward : choices;
+        const p = options[Math.floor(Math.random() * options.length)];
         c.toX = p.x + .5; c.toY = p.y + .5;
         c.dir = p.dx > 0 ? 'x' : p.dx < 0 ? '-x' : p.dy > 0 ? 'y' : '-y';
         c.t = 0;
