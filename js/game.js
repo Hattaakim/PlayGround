@@ -104,7 +104,7 @@ window.KK = window.KK || {};
   }
   const PERIOD_DAYS = { day: 1, week: 7, month: 30 };
   const PERIOD_LABELS = { day: 'Hari', week: 'Minggu', month: 'Bulan' };
-  const BASE_TICK_SECONDS = 2.4;
+  const BASE_TICK_SECONDS = 4.8;
   function periodScale() { return (PERIOD_DAYS[state.period] || PERIOD_DAYS.week) / 7; }
   function tickInterval() {
     const days = PERIOD_DAYS[state?.period] || PERIOD_DAYS.week;
