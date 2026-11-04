@@ -102,10 +102,16 @@ window.KK = window.KK || {};
     if (pop >= 30) return 'Walikota Pemula';
     return 'Walikota Baru';
   }
+  const PERIOD_DAYS = { day: 1, week: 7, month: 30 };
+  const PERIOD_LABELS = { day: 'Hari', week: 'Minggu', month: 'Bulan' };
+  function periodScale() { return (PERIOD_DAYS[state.period] || PERIOD_DAYS.week) / 7; }
+  function periodNumber() {
+    return Math.floor((state.elapsedDays || 0) / (PERIOD_DAYS[state.period] || PERIOD_DAYS.week)) + 1;
+  }
   function pad2(n) { return String(Math.floor(n)).padStart(2, '0'); }
   function dateText() {
     const h = Math.floor(state.hour || 0) % 24;
-    return `Minggu ${state.tick + 1}, ${pad2(h)}.00`;
+    return `${PERIOD_LABELS[state.period] || PERIOD_LABELS.week} ${periodNumber()}, ${pad2(h)}.00`;
   }
   function rng(seed) {
     let a = seed >>> 0;
@@ -121,7 +127,7 @@ window.KK = window.KK || {};
   function blankState(name) {
     const s = {
       version: 2, cityName: name || 'Kota Kita', money: 6000, tick: 0, hour: 8.6,
-      gridSize: GRID,
+      period: 'week', elapsedDays: 0, gridSize: GRID,
       taxRate: 9, policies: {}, grid: [], buildings: [], cars: [],
       uid: 0, population: 0, jobs: 0, commercialJobs: 0, industrialJobs: 0, workers: 0,
       happiness: 60, moodBoost: 0, maxPop: 0, powerCap: 0, powerUse: 0, waterCap: 0, waterUse: 0,
@@ -536,8 +542,10 @@ window.KK = window.KK || {};
   function simulateTick() {
     if (!state) return;
     state.tick++;
-    state.hour = (state.hour + .36) % 24;
-    state.moodBoost *= .966;
+    const scale = periodScale();
+    state.elapsedDays = (state.elapsedDays || 0) + PERIOD_DAYS[state.period];
+    state.hour = (state.hour + .36 * scale) % 24;
+    state.moodBoost *= Math.pow(.966, scale);
     if (Math.abs(state.moodBoost) < .05) state.moodBoost = 0;
     recalc();
     const hasPower = state.powerCap >= state.powerUse;
@@ -550,23 +558,23 @@ window.KK = window.KK || {};
       if (b.level === 0) {
         const kind = zoneArtKind(d);
         if (ok && demandFor(kind) > 0 && state.happiness >= 38) {
-          b.growth += 1 + (state.happiness > 66 ? .5 : 0);
+          b.growth += (1 + (state.happiness > 66 ? .5 : 0)) * scale;
           if (b.growth >= 2) { b.level = 1; b.growth = 0; b.evo = 0; changed = true; }
-        } else b.growth = Math.max(0, b.growth - .5);
+        } else b.growth = Math.max(0, b.growth - .5 * scale);
       } else {
         const school = nearbyArt(b, ['school']);
         const hospital = nearbyArt(b, ['hospital']);
         let maxLv = 3;
         if (kindOf(d) === 'r') maxLv = 2 + (school ? 1 : 0) + (hospital ? 1 : 0);
         if (b.level < Math.min(d.maxLevel || 3, maxLv) && ok && state.happiness >= 50) {
-          b.evo += state.happiness >= 68 ? 2 : 1;
+          b.evo += (state.happiness >= 68 ? 2 : 1) * scale;
           const need = [0, 7, 13, 21][b.level] || 99;
           if (b.evo >= need) { b.level++; b.evo = 0; changed = true; }
-        } else if (b.evo > 0) b.evo = Math.max(0, b.evo - 1);
+        } else if (b.evo > 0) b.evo = Math.max(0, b.evo - scale);
       }
     }
     if (changed) recalc();
-    state.money += state.income - state.expense;
+    state.money += (state.income - state.expense) * scale;
     // resource warnings
     if (!state.warned.power && state.powerUse > state.powerCap && state.powerUse > 0) {
       toast('Listrik tidak cukup! Bangun pembangkit atau taman surya.', 'bad', 'bolt');
@@ -581,13 +589,13 @@ window.KK = window.KK || {};
     checkUnlocks();
     checkMissions();
     // random city event
-    state.eventTimer = (state.eventTimer || 48) - 1;
+    state.eventTimer = (state.eventTimer || 48) - scale;
     if (state.eventTimer <= 0) {
       state.eventTimer = 55 + Math.floor(Math.random() * 25);
       if (!state.modalPause && state.population >= 20) setTimeout(showRandomEvent, 350);
     }
-    if (state.tick % 2 === 0) spawnCars();
-    if (state.tick % 20 === 0) saveGame(true);
+    if (state.tick % Math.max(1, Math.round(2 / scale)) === 0) spawnCars();
+    if (state.tick % Math.max(1, Math.round(20 / scale)) === 0) saveGame(true);
     updateAll();
     updateSelection();
   }
@@ -728,7 +736,7 @@ window.KK = window.KK || {};
     $('#statHappy').textContent = state.happiness;
     $('#statPower').textContent = `${Math.round(state.powerUse)}/${Math.round(state.powerCap)}`;
     $('#statWater').textContent = `${Math.round(state.waterUse)}/${Math.round(state.waterCap)}`;
-    $('#weekLabel').textContent = `Minggu ${state.tick + 1}`;
+    $('#weekLabel').textContent = `${PERIOD_LABELS[state.period] || PERIOD_LABELS.week} ${periodNumber()}`;
     $('#happyValue').textContent = state.happiness + '%';
     $('#happyBar').style.width = state.happiness + '%';
     $('#incomeValue').textContent = (state.income >= 0 ? '+' : '') + money(state.income);
@@ -752,6 +760,7 @@ window.KK = window.KK || {};
     const pb = $('#pauseBtn');
     pb.innerHTML = icon(state.paused ? 'play' : 'pause');
     $$('#speedGroup button').forEach(b => b.classList.toggle('active', Number(b.dataset.speed) === state.speed));
+    $('#periodSelect').value = PERIOD_DAYS[state.period] ? state.period : 'week';
     // tool / unlock info
     let hint;
     if (state.tool && state.tool !== 'bulldoze' && DEFS[state.tool]) {
@@ -1016,7 +1025,7 @@ window.KK = window.KK || {};
           <div class="stat-box"><b>${fmt(state.population)}</b><span>Penduduk</span></div>
           <div class="stat-box"><b>${fmt(state.jobs)}</b><span>Lapangan kerja</span></div>
           <div class="stat-box"><b>${state.happiness}%</b><span>Kebahagiaan</span></div>
-          <div class="stat-box"><b>Minggu ${state.tick + 1}</b><span>Waktu membangun</span></div>
+          <div class="stat-box"><b>${PERIOD_LABELS[state.period]} ${periodNumber()}</b><span>Waktu membangun</span></div>
         </div>
         <div class="modal-actions" style="justify-content:center"><button class="btn sun" id="winContinue">Terus Membangun</button></div>
         <div class="save-note">Tidak ada batas akhir. Teruskan hingga seluruh peta penuh.</div>
@@ -1046,6 +1055,7 @@ window.KK = window.KK || {};
     for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (state.grid[idx(x, y)].road) roads.push(y * size + x);
     return {
       v: 2, gridSize: size, cityName: state.cityName, money: state.money, tick: state.tick, hour: state.hour,
+      period: state.period, elapsedDays: state.elapsedDays, speed: state.speed,
       taxRate: state.taxRate, policies: state.policies, uid: state.uid,
       missionsDone: state.missionsDone, won: state.won, maxPop: state.maxPop,
       unlocked: state.unlocked, moodBoost: state.moodBoost, eventTimer: state.eventTimer,
@@ -1073,7 +1083,12 @@ window.KK = window.KK || {};
       state = blankState(d.cityName);
       const savedSize = Number(d.gridSize);
       state.gridSize = Number.isInteger(savedSize) && savedSize >= GRID && savedSize <= MAX_GRID_SIZE && (savedSize - GRID) % 8 === 0 ? savedSize : GRID;
-      state.money = d.money; state.tick = d.tick; state.hour = d.hour;
+      state.money = Number.isFinite(d.money) ? d.money : 6000;
+      state.tick = Number.isFinite(d.tick) ? d.tick : 0;
+      state.hour = Number.isFinite(d.hour) ? d.hour : 8.6;
+      state.period = PERIOD_DAYS[d.period] ? d.period : 'week';
+      state.elapsedDays = Number.isFinite(d.elapsedDays) && d.elapsedDays >= 0 ? d.elapsedDays : state.tick * 7;
+      state.speed = [1, 2, 3].includes(Number(d.speed)) ? Number(d.speed) : 1;
       state.taxRate = d.taxRate || 9; state.policies = d.policies || {};
       state.uid = d.uid || 0; state.missionsDone = d.missionsDone || {};
       state.won = !!d.won; state.maxPop = d.maxPop || 0; state.unlocked = d.unlocked || {};
@@ -1306,7 +1321,13 @@ window.KK = window.KK || {};
     $('#speedGroup').addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b || !state) return;
       state.speed = Number(b.dataset.speed); state.paused = false;
-      updateHUD(true); sfx.click();
+      updateHUD(true); saveGame(true); sfx.click();
+    });
+    $('#periodSelect').addEventListener('change', e => {
+      if (!state || !PERIOD_DAYS[e.target.value]) return;
+      state.period = e.target.value;
+      simAcc = 0;
+      updateHUD(true); saveGame(true); sfx.click();
     });
     $('#expandBtn')?.addEventListener('click', expandCity);
     $('#minimap').addEventListener('click', e => {
@@ -1611,7 +1632,7 @@ window.KK = window.KK || {};
     forcePlace('small_park', 16, 16, 1);
     forcePlace('lamp', 19, 8, 1);
     state.money = 84200;
-    state.tick = 86; state.hour = 15.2;
+    state.tick = 86; state.elapsedDays = 86 * 7; state.hour = 15.2;
     cam.x = -20; cam.y = 370; cam.zoom = innerWidth < 720 ? .72 : .92;
     recalc(); checkUnlocks(true);
     state.maxPop = 1200;

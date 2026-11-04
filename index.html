@@ -131,7 +131,12 @@
 
     <div id="timebar" class="panel">
       <button class="icon-btn round" id="pauseBtn" aria-label="Jeda"><svg class="ic"><use href="#i-pause"/></svg></button>
-      <div class="speed-group" id="speedGroup">
+      <select id="periodSelect" aria-label="Periode simulasi" title="Panjang satu langkah simulasi; ekonomi dan pertumbuhan menyesuaikan durasi">
+        <option value="day">Harian</option>
+        <option value="week" selected>Mingguan</option>
+        <option value="month">Bulanan</option>
+      </select>
+      <div class="speed-group" id="speedGroup" aria-label="Kecepatan waktu">
         <button data-speed="1" class="active">1×</button>
         <button data-speed="2">2×</button>
         <button data-speed="3">3×</button>
