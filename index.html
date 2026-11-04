@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#0a4f4b"/>
 <title>Kota Kita — Bangun Kotamu</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a4f4b'/%3E%3Cpath d='M18 14h9v15l12-15h11L36 31l15 19H39L27 34v16h-9z' fill='%23ffc64a'/%3E%3C/svg%3E"/>
+<script>try{if(localStorage.getItem('kotakita.theme.v1')==='dark')document.documentElement.dataset.theme='dark'}catch(e){}</script>
 <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
@@ -40,6 +41,7 @@
     <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></symbol>
     <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></symbol>
   </defs>
 </svg>
@@ -64,6 +66,7 @@
         <div class="stat" title="Air terpakai / kapasitas"><svg class="ic"><use href="#i-drop"/></svg><span id="statWater">0/0</span></div>
       </div>
       <div class="top-actions">
+        <button class="icon-btn" id="themeBtn" type="button" title="Aktifkan mode gelap" aria-label="Aktifkan mode gelap"><svg class="ic"><use href="#i-moon"/></svg></button>
         <button class="icon-btn" id="soundBtn" title="Suara" aria-label="Suara"><svg class="ic"><use href="#i-sound"/></svg></button>
         <button class="icon-btn" id="saveBtn" title="Simpan kota" aria-label="Simpan"><svg class="ic"><use href="#i-save"/></svg></button>
         <button class="icon-btn" id="helpBtn" title="Cara bermain" aria-label="Bantuan"><svg class="ic"><use href="#i-help"/></svg></button>
