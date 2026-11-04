@@ -1,4 +1,17 @@
-# PlayGround
+# Kota Kita
+
+Game simulasi kota sederhana berbasis browser. Bangun jalan dan fasilitas, kelola kas, serta bantu Desa Harmoni tumbuh menjadi kota yang ramai.
+
+## Cara bermain
+
+Buka `index.html` di browser, atau jalankan server lokal:
+
+```sh
+python3 -m http.server 3002
+```
+
+Pilih alat pembangunan di bawah peta, lalu klik petak kosong. Bangunan (selain jalan) harus berdampingan dengan jalan. Kota tersimpan otomatis di browser.
+
 
 <!-- omgithub:readme:start -->
 ## 🚀 Build, play, and remix with OMGithub

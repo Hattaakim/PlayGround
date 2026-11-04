@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#101a20" />
+  <title>Kota Kita — Bangun kota impianmu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="game-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Kota Kita beranda">
+        <span class="brand-mark"><span></span><span></span><span></span></span>
+        <span class="brand-copy"><strong>KOTA<span>KITA</span></strong><small>SIMULATOR KOTA</small></span>
+      </a>
+      <div class="city-name"><span class="live-dot"></span><div><strong id="cityName">Desa Harmoni</strong><small>Kota kecil, mimpi besar</small></div><button id="renameBtn" class="icon-btn" aria-label="Ganti nama kota" title="Ganti nama kota">✎</button></div>
+      <div class="top-actions">
+        <div class="date-chip"><span class="sun-icon">☀</span><div><small>HARI</small><strong id="dateLabel">Senin · 1</strong></div></div>
+        <button id="pauseBtn" class="pause-btn" aria-label="Jeda permainan"><span id="pauseIcon">Ⅱ</span><span id="pauseText">Jeda</span></button>
+        <button id="soundBtn" class="icon-btn sound-btn" aria-label="Suara">♫</button>
+      </div>
+    </header>
+
+    <main class="game-layout">
+      <section class="world-panel">
+        <div class="map-topline">
+          <div class="weather"><span class="weather-icon">🌤</span><div><strong>Cerah</strong><small>Cuaca hari ini</small></div></div>
+          <div class="map-tools"><span class="map-hint"><kbd>klik</kbd> untuk membangun</span><button class="map-tool" id="centerBtn" title="Pusatkan kota">⌖</button><button class="map-tool" id="zoomOut" title="Perkecil">−</button><span id="zoomLabel">100%</span><button class="map-tool" id="zoomIn" title="Perbesar">+</button></div>
+        </div>
+        <div class="canvas-wrap" id="canvasWrap">
+          <canvas id="cityCanvas" aria-label="Peta kota isometrik. Klik petak kosong untuk membangun."></canvas>
+          <div class="map-legend"><span><i class="legend-dot home-dot"></i> Permukiman</span><span><i class="legend-dot shop-dot"></i> Usaha</span><span><i class="legend-dot park-dot"></i> Ruang hijau</span></div>
+          <div class="toast" id="toast" role="status"></div>
+          <div class="intro-card" id="introCard"><button class="intro-close" id="introClose" aria-label="Tutup">×</button><span class="intro-emoji">🏡</span><strong>Selamat datang, Wali Kota!</strong><p>Kotamu masih kecil. Bangun jalan, rumah, dan fasilitas untuk membuat Desa Harmoni tumbuh.</p><button id="startBuild" class="intro-cta">Mulai membangun <span>→</span></button></div>
+        </div>
+        <div class="build-dock">
+          <div class="dock-label"><span class="dock-pulse"></span><span>MODE MEMBANGUN</span></div>
+          <div class="tool-list" id="toolList">
+            <button class="tool-card active" data-tool="inspect"><span class="tool-icon inspect-icon">⌖</span><span class="tool-name">Lihat</span><span class="tool-cost">Pilih</span></button>
+            <button class="tool-card" data-tool="road"><span class="tool-icon road-icon"><i></i></span><span class="tool-name">Jalan</span><span class="tool-cost">¤ 80</span></button>
+            <button class="tool-card" data-tool="house"><span class="tool-icon">🏠</span><span class="tool-name">Rumah</span><span class="tool-cost">¤ 450</span></button>
+            <button class="tool-card" data-tool="shop"><span class="tool-icon">🏪</span><span class="tool-name">Toko</span><span class="tool-cost">¤ 700</span></button>
+            <button class="tool-card" data-tool="park"><span class="tool-icon">🌳</span><span class="tool-name">Taman</span><span class="tool-cost">¤ 500</span></button>
+            <button class="tool-card" data-tool="clinic"><span class="tool-icon">🏥</span><span class="tool-name">Klinik</span><span class="tool-cost">¤ 1.200</span></button>
+            <button class="tool-card" data-tool="school"><span class="tool-icon">🏫</span><span class="tool-name">Sekolah</span><span class="tool-cost">¤ 1.500</span></button>
+            <button class="tool-card" data-tool="bulldoze"><span class="tool-icon">🧹</span><span class="tool-name">Ratakan</span><span class="tool-cost">Gratis</span></button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="city-sidebar">
+        <section class="treasury-card">
+          <div class="section-eyebrow">KAS KOTA <span class="cash-trend" id="cashTrend">↗ stabil</span></div>
+          <div class="money-line"><span class="currency">¤</span><strong id="cashValue">12.000</strong></div>
+          <div class="budget-row"><span>Pendapatan harian</span><strong class="positive" id="incomeValue">+¤ 120</strong></div>
+          <div class="budget-row"><span>Pengeluaran harian</span><strong class="negative" id="expenseValue">−¤ 35</strong></div>
+          <div class="budget-bar"><span id="budgetFill"></span></div>
+        </section>
+
+        <section class="stats-section">
+          <div class="section-title"><h2>Kondisi kota</h2><button class="more-btn" id="statsInfo" title="Tentang statistik">···</button></div>
+          <div class="stat-card population-card"><span class="stat-symbol">👥</span><div class="stat-info"><small>PENDUDUK</small><strong><span id="populationValue">12</span><small> / <span id="capacityValue">24</span></small></strong></div><span class="stat-change" id="popChange">+2</span><div class="mini-meter"><i id="popMeter"></i></div></div>
+          <div class="stat-card"><span class="stat-symbol happiness-symbol">☺</span><div class="stat-info"><small>KEBAHAGIAAN</small><strong><span id="happinessValue">76</span><small> / 100</small></strong></div><span class="mood-label" id="moodLabel">Senang</span><div class="mini-meter happiness-meter"><i id="happyMeter"></i></div></div>
+          <div class="stat-card compact-stat"><span class="stat-symbol">🧰</span><div class="stat-info"><small>LOWONGAN KERJA</small><strong id="jobsValue">8</strong></div><span class="compact-caption">tersedia</span></div>
+        </section>
+
+        <section class="mission-card">
+          <div class="section-title"><h2>Misi wali kota</h2><span class="mission-tag">HARI INI</span></div>
+          <div class="mission-body"><div class="mission-icon">🎯</div><div><strong id="missionTitle">Awal yang nyaman</strong><p id="missionText">Bangun 2 rumah untuk menyambut warga baru.</p><div class="mission-progress"><span id="missionFill"></span></div><small id="missionCount">0 / 2 selesai</small></div></div>
+          <div class="mission-reward"><span>Hadiah misi</span><strong>+¤ 800</strong></div>
+        </section>
+
+        <section class="city-tip"><span class="tip-icon">💡</span><div><strong>Tips kota</strong><p id="tipText">Rumah yang berdekatan dengan jalan akan menarik lebih banyak warga.</p></div><button id="nextTip" aria-label="Tips berikutnya">↗</button></section>
+        <div class="sidebar-footer"><span class="online-dot"></span> Kota berjalan dengan baik <span class="footer-sparkle">✦</span></div>
+      </aside>
+    </main>
+    <footer class="bottom-bar"><span>© KOTA KITA <b>·</b> BANGUN KOTA IMPIANMU</span><span class="footer-center">Sebuah kota untuk semua <span>♥</span></span><span class="controls-help"><kbd>ESC</kbd> batal <b>·</b> <kbd>klik</kbd> bangun</span></footer>
+  </div>
+  <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true"><div class="modal-card"><button class="modal-close" id="modalClose">×</button><span class="modal-icon">📊</span><h2>Ringkasan Kota</h2><p id="modalText">Kota ini terus berkembang!</p><button class="modal-action" id="modalOk">Mengerti</button></div></div>
+  <script src="game.js"></script>
+</body>
+</html>
