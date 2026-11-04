@@ -180,6 +180,9 @@ button:focus-visible,input:focus-visible{outline:3px solid #ffcf5f;outline-offse
 }
 #timebar .icon-btn{border:0;background:rgba(255,255,255,.12);width:36px;height:36px;border-radius:10px;color:#fff}
 #timebar .icon-btn:hover{background:rgba(255,255,255,.22)}
+#periodSelect{height:32px;width:94px;padding:0 7px;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:rgba(0,0,0,.18);color:#e9fffb;font:700 10px "KotaBody",sans-serif;outline:none}
+#periodSelect:focus-visible{box-shadow:0 0 0 2px rgba(255,198,74,.65)}
+#periodSelect option{color:#173b3a;background:#f4fffc}
 .speed-group{display:flex;background:rgba(0,0,0,.18);border-radius:9px;padding:3px;gap:2px}
 .speed-group button{height:27px;min-width:32px;border-radius:6px;color:#9fd0ca;font-size:10.5px;font-weight:800;transition:.15s}
 .speed-group button:hover{color:#fff}
@@ -366,7 +369,8 @@ kbd{background:#f0f6f3;border:1px solid var(--line-strong);border-bottom-width:2
   .time-info{min-width:0;flex:1}
   .time-info span{font-size:10px}
   .time-info small{font-size:8.5px;max-width:150px;overflow:hidden;text-overflow:ellipsis}
-  .speed-group button{min-width:28px;font-size:9.5px}
+  #periodSelect{width:76px;padding:0 4px;font-size:9px}
+  .speed-group button{min-width:27px;font-size:9.5px}
   #selectionCard{right:8px;left:8px;bottom:calc(144px + var(--safe-bottom));width:auto;z-index:34}
   #toasts{right:8px;left:8px;bottom:calc(150px + var(--safe-bottom));max-width:none;align-items:stretch}
   .toast{font-size:10.5px}
