@@ -525,22 +525,74 @@ window.KK = window.KK || {};
     const dxs = dir === 'x' ? 1 : dir === '-x' ? -1 : 0;
     const dys = dir === 'y' ? 1 : dir === '-y' ? -1 : 0;
     const ang = Math.atan2((dxs + dys) * IY, (dxs - dys) * IX);
+    const color = car.color || '#e6563d';
+    const bob = Math.sin(time * 10 + (car.t || 0) * Math.PI) * .18;
     ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.fillStyle = 'rgba(20,45,30,.22)';
-    ctx.beginPath(); ctx.ellipse(0, 1, 9, 4, ang, 0, 7); ctx.fill();
+    ctx.translate(p.x, p.y + bob);
+    ctx.fillStyle = 'rgba(20,35,30,.27)';
+    ctx.beginPath(); ctx.ellipse(0, 2, 12, 5, ang, 0, Math.PI * 2); ctx.fill();
     ctx.rotate(ang + Math.PI);
-    ctx.fillStyle = car.color || '#e6563d';
-    roundRect(ctx, -7, -4, 14, 8, 3); ctx.fill();
-    ctx.fillStyle = light(car.color || '#e6563d', .18);
-    roundRect(ctx, -5, -3, 6, 6, 2); ctx.fill();
-    ctx.fillStyle = 'rgba(30,45,55,.55)';
-    roundRect(ctx, 1, -3, 4, 6, 1.5); ctx.fill();
-    ctx.fillStyle = NIGHT > .28 ? '#ffe9a0' : '#f7f2df';
-    ctx.fillRect(-8, -3, 1.6, 2); ctx.fillRect(-8, 1, 1.6, 2);
+
+    // Four rubber tires and hubs sit just outside the sculpted body.
+    for (const x of [-6.5, 6]) for (const y of [-4.6, 4.6]) {
+      roundRect(ctx, x - 2, y - 1.7, 4, 3.8, 1.3);
+      ctx.fillStyle = '#172328'; ctx.fill();
+      ctx.fillStyle = '#89999a';
+      ctx.beginPath(); ctx.arc(x, y + .1, .8, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Lower sill gives the car a visible 3D side and a soft ground shadow.
+    ctx.beginPath();
+    ctx.moveTo(-10, -2.5); ctx.lineTo(-7.5, -4.8); ctx.lineTo(5.5, -4.5);
+    ctx.lineTo(9.5, -2); ctx.lineTo(9.5, 2.8); ctx.lineTo(6, 5.2);
+    ctx.lineTo(-7, 5); ctx.lineTo(-10, 2.5); ctx.closePath();
+    ctx.fillStyle = shade(color, .53); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-10, -3.2); ctx.lineTo(-7.2, -5.2); ctx.lineTo(5.5, -4.8);
+    ctx.lineTo(9, -2.1); ctx.lineTo(8.7, 1.7); ctx.lineTo(5.6, 3.9);
+    ctx.lineTo(-7, 3.8); ctx.lineTo(-9.8, 1.4); ctx.closePath();
+    ctx.fillStyle = color; ctx.fill();
+    ctx.strokeStyle = light(color, .28); ctx.lineWidth = .55; ctx.stroke();
+
+    // Hood and rear deck highlights define the top plane.
+    ctx.beginPath();
+    ctx.moveTo(-9, -2.5); ctx.lineTo(-6.5, -4); ctx.lineTo(-3.8, -3.8);
+    ctx.lineTo(-3.5, 3); ctx.lineTo(-7, 3.2); ctx.lineTo(-9.5, 1.2); ctx.closePath();
+    ctx.fillStyle = light(color, .2); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(5, -3.8); ctx.lineTo(7.5, -2); ctx.lineTo(7.5, 1.7);
+    ctx.lineTo(5, 3.5); ctx.closePath();
+    ctx.fillStyle = shade(color, .76); ctx.fill();
+
+    // Raised cabin, split glass and roof shine make the silhouette read as a small car.
+    ctx.beginPath();
+    ctx.moveTo(-5.4, -3.15); ctx.lineTo(-3.3, -4.05); ctx.lineTo(2.9, -3.85);
+    ctx.lineTo(5.2, -2.7); ctx.lineTo(5.2, 2.45); ctx.lineTo(2.7, 3.15);
+    ctx.lineTo(-3.6, 3.05); ctx.lineTo(-5.5, 2); ctx.closePath();
+    ctx.fillStyle = shade(color, .78); ctx.fill();
+    ctx.strokeStyle = light(color, .3); ctx.lineWidth = .5; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-4.4, -2.7); ctx.lineTo(-2.7, -3.45); ctx.lineTo(-.3, -3.35);
+    ctx.lineTo(-.3, 2.55); ctx.lineTo(-3.1, 2.55); ctx.lineTo(-4.4, 1.8); ctx.closePath();
+    ctx.fillStyle = 'rgba(164,218,229,.88)'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(.35, -3.3); ctx.lineTo(2.5, -3.2); ctx.lineTo(4.2, -2.35);
+    ctx.lineTo(4.2, 1.9); ctx.lineTo(2.4, 2.6); ctx.lineTo(.35, 2.55); ctx.closePath();
+    ctx.fillStyle = 'rgba(44,79,91,.83)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(235,255,255,.55)'; ctx.lineWidth = .45; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-3.8, -2.9); ctx.lineTo(-1.3, -3.18); ctx.lineTo(-1.3, 2.35); ctx.lineTo(-3.5, 2.25); ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,.13)'; ctx.fill();
+
+    // Headlamps, tail lamps and a faint beam at night orient the vehicle.
+    ctx.fillStyle = NIGHT > .28 ? '#fff1b1' : '#fff8db';
+    roundRect(ctx, -9.7, -2.4, 1.2, 1.5, .45); ctx.fill();
+    roundRect(ctx, -9.7, 1, 1.2, 1.5, .45); ctx.fill();
+    ctx.fillStyle = '#d94236';
+    roundRect(ctx, 8.3, -1.9, .8, 1.3, .35); ctx.fill();
+    roundRect(ctx, 8.3, 1, .8, 1.3, .35); ctx.fill();
     if (NIGHT > .28) {
-      ctx.globalAlpha = .25; ctx.fillStyle = '#ffe9a0';
-      ctx.beginPath(); ctx.moveTo(-8, -2); ctx.lineTo(-20, -7); ctx.lineTo(-20, 4); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = .22; ctx.fillStyle = '#ffe9a0';
+      ctx.beginPath(); ctx.moveTo(-9.5, -2); ctx.lineTo(-22, -7); ctx.lineTo(-22, 4); ctx.closePath(); ctx.fill();
       ctx.globalAlpha = 1;
     }
     ctx.restore();

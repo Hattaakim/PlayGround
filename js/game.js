@@ -360,6 +360,7 @@ window.KK = window.KK || {};
     return {
       x: tx + .5, y: ty + .5, fromX: tx + .5, fromY: ty + .5, toX: c.x + .5, toY: c.y + .5,
       t: 0, speed: .45 + Math.random() * .35, color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
+      dx: c.dx, dy: c.dy,
       dir: c.dx > 0 ? 'x' : c.dx < 0 ? '-x' : c.dy > 0 ? 'y' : '-y', alive: true
     };
   }
@@ -389,14 +390,17 @@ window.KK = window.KK || {};
         const choices = [];
         for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
           const nx = tx + dx, ny = ty + dy;
-          if (inBounds(nx, ny) && state.grid[idx(nx, ny)].road) {
-            if (dx === -c.dx && dy === -c.dy && choices.length) continue;
-            choices.push({ x: nx, y: ny, dx, dy });
-          }
+          if (inBounds(nx, ny) && state.grid[idx(nx, ny)].road) choices.push({ x: nx, y: ny, dx, dy });
         }
         if (!choices.length) { c.alive = false; continue; }
-        const pick = choices[Math.floor(Math.random() * choices.length)];
+        const forward = choices.filter(p => p.dx !== -c.dx || p.dy !== -c.dy);
+        const route = forward.length ? forward : choices;
+        const straight = route.find(p => p.dx === c.dx && p.dy === c.dy);
+        const pick = straight && Math.random() < .62
+          ? straight
+          : route[Math.floor(Math.random() * route.length)];
         c.toX = pick.x + .5; c.toY = pick.y + .5;
+        c.dx = pick.dx; c.dy = pick.dy;
         c.dir = pick.dx > 0 ? 'x' : pick.dx < 0 ? '-x' : pick.dy > 0 ? 'y' : '-y';
         c.t = 0;
       }
@@ -1441,7 +1445,6 @@ window.KK = window.KK || {};
       const interval = tickInterval();
       while (simAcc >= interval && steps < 5) { simAcc -= interval; simulateTick(); steps++; }
     }
-    $('#timebar').style.setProperty('--time-progress', `${clamp(simAcc / tickInterval(), 0, 1) * 100}%`);
     const nf = nightFactor(state.hour);
     KK.render.drawWorld(ctx, state, cam, viewW, viewH, cam.zoom, now / 1000, {
       dpr, night: nf.night, dusk: nf.dusk, ghost: buildGhost(), selected: state.selected
@@ -1492,7 +1495,7 @@ window.KK = window.KK || {};
       const c = choices[i % choices.length];
       w.cars.push({
         x: r.x + .5, y: r.y + .5, fromX: r.x + .5, fromY: r.y + .5, toX: c.x + .5, toY: c.y + .5, t: Math.random(),
-        speed: .3 + Math.random() * .35, color: CAR_COLORS[i % CAR_COLORS.length],
+        speed: .3 + Math.random() * .35, color: CAR_COLORS[i % CAR_COLORS.length], dx: c.dx, dy: c.dy,
         dir: c.dx > 0 ? 'x' : c.dx < 0 ? '-x' : c.dy > 0 ? 'y' : '-y'
       });
     }
@@ -1511,8 +1514,12 @@ window.KK = window.KK || {};
           if (nx >= 0 && ny >= 0 && nx < heroWorld.gridSize && ny < heroWorld.gridSize && heroWorld.grid[ny * heroWorld.gridSize + nx].road) choices.push({ x: nx, y: ny, dx, dy });
         }
         if (!choices.length) { c.t = 0; continue; }
-        const p = choices[Math.floor(Math.random() * choices.length)];
+        const forward = choices.filter(p => p.dx !== -c.dx || p.dy !== -c.dy);
+        const route = forward.length ? forward : choices;
+        const straight = route.find(p => p.dx === c.dx && p.dy === c.dy);
+        const p = straight && Math.random() < .62 ? straight : route[Math.floor(Math.random() * route.length)];
         c.toX = p.x + .5; c.toY = p.y + .5;
+        c.dx = p.dx; c.dy = p.dy;
         c.dir = p.dx > 0 ? 'x' : p.dx < 0 ? '-x' : p.dy > 0 ? 'y' : '-y';
         c.t = 0;
       }
