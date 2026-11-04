@@ -519,30 +519,144 @@ window.KK = window.KK || {};
     }
   }
 
+  function carFallbackAngle(car) {
+    const d = car.dir || 'x';
+    return d === 'x' ? 0 : d === '-x' ? Math.PI : d === 'y' ? Math.PI / 2 : -Math.PI / 2;
+  }
   function drawCar(ctx, car, time) {
-    const p = iso(car.x + .5, car.y + .5);
-    const dir = car.dir || 'x';
-    const dxs = dir === 'x' ? 1 : dir === '-x' ? -1 : 0;
-    const dys = dir === 'y' ? 1 : dir === '-y' ? -1 : 0;
-    const ang = Math.atan2((dxs + dys) * IY, (dxs - dys) * IX);
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.fillStyle = 'rgba(20,45,30,.22)';
-    ctx.beginPath(); ctx.ellipse(0, 1, 9, 4, ang, 0, 7); ctx.fill();
-    ctx.rotate(ang + Math.PI);
-    ctx.fillStyle = car.color || '#e6563d';
-    roundRect(ctx, -7, -4, 14, 8, 3); ctx.fill();
-    ctx.fillStyle = light(car.color || '#e6563d', .18);
-    roundRect(ctx, -5, -3, 6, 6, 2); ctx.fill();
-    ctx.fillStyle = 'rgba(30,45,55,.55)';
-    roundRect(ctx, 1, -3, 4, 6, 1.5); ctx.fill();
-    ctx.fillStyle = NIGHT > .28 ? '#ffe9a0' : '#f7f2df';
-    ctx.fillRect(-8, -3, 1.6, 2); ctx.fillRect(-8, 1, 1.6, 2);
-    if (NIGHT > .28) {
-      ctx.globalAlpha = .25; ctx.fillStyle = '#ffe9a0';
-      ctx.beginPath(); ctx.moveTo(-8, -2); ctx.lineTo(-20, -7); ctx.lineTo(-20, 4); ctx.closePath(); ctx.fill();
+    const heading = Number.isFinite(car.heading) ? car.heading : carFallbackAngle(car);
+    const lane = car.lane == null ? .16 : car.lane;
+    const fx = Math.cos(heading), fy = Math.sin(heading);
+    // Right-hand traffic: shift the car to its lane instead of driving down the centre line.
+    const p = iso(car.x - fy * lane, car.y + fx * lane);
+    const fS = { x: (fx - fy) * IX, y: (fx + fy) * IY };
+    const fLen = Math.hypot(fS.x, fS.y) || 1;
+    const F = { x: fS.x / fLen, y: fS.y / fLen };
+    const rS = { x: (-fy - fx) * IX, y: (-fy + fx) * IY };
+    const rLen = Math.hypot(rS.x, rS.y) || 1;
+    const R = { x: rS.x / rLen, y: rS.y / rLen };
+    const color = car.color || '#e6563d';
+    const HL = 9.2, HW = 4.4;
+    const BODY_LIFT = 1.2, BODY_H = 4.1;
+    const CABIN_LIFT = BODY_LIFT + BODY_H, CABIN_H = 4.0;
+    const bob = Math.sin(car.bob || time * 7) * .22;
+    const pt = (f, r, lift) => ({
+      x: p.x + F.x * f + R.x * r,
+      y: p.y + F.y * f + R.y * r - (lift || 0)
+    });
+
+    function prism(cs, lift, h, col, topCol) {
+      const b = cs.map(c => ({ x: c.x, y: c.y - lift }));
+      const t = b.map(c => ({ x: c.x, y: c.y - h }));
+      for (let i = 0; i < 4; i++) {
+        const j = (i + 1) % 4;
+        const ex = b[j].x - b[i].x, ey = b[j].y - b[i].y;
+        const len = Math.hypot(ex, ey) || 1;
+        const nx = -ey / len, ny = ex / len;
+        const lum = .56 + .36 * Math.max(0, nx * -.55 + ny * -.83);
+        poly(ctx, [b[i], b[j], t[j], t[i]], shade(col, lum));
+      }
+      poly(ctx, t, topCol || light(col, .12));
+    }
+    const bodyCs = [pt(HL, HW, 0), pt(HL, -HW, 0), pt(-HL, -HW, 0), pt(-HL, HW, 0)];
+    const pc = { x: p.x - F.x * 1.25, y: p.y - F.y * 1.25 };
+    const cp = (f, r, lift) => ({
+      x: pc.x + F.x * f + R.x * r,
+      y: pc.y + F.y * f + R.y * r - (lift || 0)
+    });
+    const cabinCs = [cp(4.6, 4.0, 0), cp(4.6, -4.0, 0), cp(-4.6, -4.0, 0), cp(-4.6, 4.0, 0)];
+
+    // Headlight beams on the asphalt at night.
+    if (NIGHT > .25) {
+      const h1 = pt(HL, HW - 1.6, 2.4), h2 = pt(HL, -(HW - 1.6), 2.4);
+      const far1 = { x: h1.x + F.x * 30 + R.x * 12, y: h1.y + F.y * 30 + R.y * 12 + 3 };
+      const far2 = { x: h2.x + F.x * 30 - R.x * 12, y: h2.y + F.y * 30 - R.y * 12 + 3 };
+      ctx.globalAlpha = NIGHT * .18;
+      poly(ctx, [h1, h2, far2, far1], '#ffeab0');
       ctx.globalAlpha = 1;
     }
+
+    // Ground shadow (rotated to the car footprint).
+    ctx.save();
+    ctx.translate(p.x, p.y + 1.8);
+    ctx.rotate(Math.atan2(F.y, F.x));
+    ctx.fillStyle = 'rgba(14,38,29,.20)';
+    ctx.beginPath(); ctx.ellipse(0, 0, HL * 1.18, HW * 1.02, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(10,30,23,.13)';
+    ctx.beginPath(); ctx.ellipse(-1.5, .8, HL * .9, HW * .72, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // Wheels sit under the body, poking out slightly.
+    const wheelAngle = Math.atan2(F.y, F.x);
+    for (const wf of [HL - 2.9, -(HL - 2.6)]) {
+      for (const wr of [HW - .15, -(HW - .15)]) {
+        const w = pt(wf, wr, .15);
+        ctx.save();
+        ctx.translate(w.x, w.y);
+        ctx.rotate(wheelAngle);
+        ctx.fillStyle = '#1e272b';
+        roundRect(ctx, -2.5, -1.15, 5, 2.3, 1.1); ctx.fill();
+        ctx.fillStyle = 'rgba(150,168,174,.42)';
+        roundRect(ctx, -1.4, -.65, 2.8, 1.3, .65); ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // Main body with a raised hood/trunk.
+    prism(bodyCs, BODY_LIFT + bob, BODY_H, color);
+    // Cabin/roof block.
+    prism(cabinCs, CABIN_LIFT + bob, CABIN_H, light(color, .04), light(color, .2));
+
+    // Windows wrapped around the cabin.
+    const winCs = cabinCs.map(c => ({ x: lerp(c.x, pc.x, .09), y: lerp(c.y, pc.y, .09) }));
+    for (let i = 0; i < 4; i++) {
+      const j = (i + 1) % 4;
+      const a = winCs[i], b = winCs[j];
+      const bottom = CABIN_LIFT + 1.1 + bob, top = bottom + 1.75;
+      poly(ctx, [
+        { x: a.x, y: a.y - bottom }, { x: b.x, y: b.y - bottom },
+        { x: b.x, y: b.y - top }, { x: a.x, y: a.y - top }
+      ], i === 0 || i === 2 ? '#426273' : '#385566');
+      if (i === 0) {
+        ctx.strokeStyle = 'rgba(220,245,255,.35)';
+        ctx.lineWidth = .7;
+        line(ctx, { x: a.x, y: a.y - top + 1.1 }, { x: b.x, y: b.y - top + 1.1 }, 'rgba(220,245,255,.35)', .7);
+      }
+    }
+    // Roof highlight + sunroof.
+    const roofC = (f, r) => cp(f, r, CABIN_LIFT + CABIN_H + bob);
+    poly(ctx, [roofC(2.3, 2.2), roofC(2.3, -2.2), roofC(-2.6, -2.2), roofC(-2.6, 2.2)], 'rgba(28,48,56,.30)');
+
+    // Lights and details.
+    function lamp(f, r, lift, fill, w, h, halo) {
+      const q = pt(f, r, lift + bob);
+      ctx.save();
+      ctx.translate(q.x, q.y);
+      ctx.rotate(wheelAngle);
+      if (halo) {
+        ctx.globalAlpha = halo;
+        ctx.fillStyle = fill;
+        ctx.beginPath(); ctx.ellipse(0, 0, w * 1.9, h * 1.9, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      ctx.fillStyle = fill;
+      roundRect(ctx, -w / 2, -h / 2, w, h, h / 2); ctx.fill();
+      ctx.restore();
+    }
+    const nightGlow = NIGHT > .25 ? NIGHT * .85 : 0;
+    lamp(HL - .35, HW - 1.65, 2.7, '#fff2c2', 1.7, 1.5, nightGlow);
+    lamp(HL - .35, -(HW - 1.65), 2.7, '#fff2c2', 1.7, 1.5, nightGlow);
+    const brake = car.brake || 0;
+    const tailGlow = Math.max(NIGHT > .25 ? .35 : 0, brake * .8);
+    lamp(-HL + .25, HW - 1.55, 2.8, brake > .25 ? '#ff5b47' : '#c8403a', 1.6, 1.4, tailGlow);
+    lamp(-HL + .25, -(HW - 1.55), 2.8, brake > .25 ? '#ff5b47' : '#c8403a', 1.6, 1.4, tailGlow);
+    // Rear plate.
+    const plate = pt(-HL + .08, 0, 2.25 + bob);
+    ctx.save();
+    ctx.translate(plate.x, plate.y);
+    ctx.rotate(wheelAngle);
+    ctx.fillStyle = 'rgba(245,243,228,.9)';
+    roundRect(ctx, -1.1, -.55, 2.2, 1.1, .25); ctx.fill();
     ctx.restore();
   }
 

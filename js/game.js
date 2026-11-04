@@ -349,65 +349,112 @@ window.KK = window.KK || {};
     return list;
   }
   const CAR_COLORS = ['#e6563d', '#3b8fd4', '#f2c94c', '#4fae62', '#c14b7c', '#f28b3c', '#6b7c8a', '#f7f4ec'];
-  function newCar(tx, ty) {
+  const CAR_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  function roadAt(world, x, y) {
+    const size = world.gridSize;
+    return x >= 0 && y >= 0 && x < size && y < size && !!(world.grid[y * size + x] && world.grid[y * size + x].road);
+  }
+  function carDirAngle(dx, dy) { return Math.atan2(dy, dx); }
+  function angleDelta(a, b) {
+    let d = (b - a) % (Math.PI * 2);
+    if (d > Math.PI) d -= Math.PI * 2;
+    if (d < -Math.PI) d += Math.PI * 2;
+    return d;
+  }
+  function makeCar(world, tx, ty, initial) {
     const choices = [];
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const nx = tx + dx, ny = ty + dy;
-      if (inBounds(nx, ny) && state.grid[idx(nx, ny)].road) choices.push({ x: nx, y: ny, dx, dy });
+    for (const [dx, dy] of CAR_DIRS) {
+      if (roadAt(world, tx + dx, ty + dy)) choices.push({ dx, dy });
     }
     if (!choices.length) return null;
-    const c = choices[Math.floor(Math.random() * choices.length)];
-    return {
-      x: tx + .5, y: ty + .5, fromX: tx + .5, fromY: ty + .5, toX: c.x + .5, toY: c.y + .5,
-      t: 0, speed: .45 + Math.random() * .35, color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
-      dir: c.dx > 0 ? 'x' : c.dx < 0 ? '-x' : c.dy > 0 ? 'y' : '-y', alive: true
+    const step = choices[Math.floor(Math.random() * choices.length)];
+    const t = initial ? Math.random() : 0;
+    const angle = carDirAngle(step.dx, step.dy);
+    const c = {
+      t, speed: .44 + Math.random() * .4,
+      fromX: tx + .5, fromY: ty + .5,
+      toX: tx + step.dx + .5, toY: ty + step.dy + .5,
+      dx: step.dx, dy: step.dy, dir: step.dx > 0 ? 'x' : step.dx < 0 ? '-x' : step.dy > 0 ? 'y' : '-y',
+      heading: angle, targetHeading: angle,
+      color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
+      lane: .155 + Math.random() * .025, alive: true, uTurns: 0, brake: 0,
+      bob: Math.random() * Math.PI * 2
     };
+    c.x = lerp(c.fromX, c.toX, c.t);
+    c.y = lerp(c.fromY, c.toY, c.t);
+    return c;
+  }
+  function newCar(tx, ty) { return makeCar(state, tx, ty, false); }
+  function carNextStep(world, tx, ty, prevDx, prevDy) {
+    const options = [];
+    for (const [dx, dy] of CAR_DIRS) {
+      if (roadAt(world, tx + dx, ty + dy)) options.push({ dx, dy });
+    }
+    if (!options.length) return null;
+    const forward = options.filter(o => !(o.dx === -prevDx && o.dy === -prevDy));
+    if (!forward.length) return { dx: -prevDx, dy: -prevDy, reverse: true };
+    // Keep most cars going straight so traffic looks purposeful instead of jittery.
+    const straight = forward.find(o => o.dx === prevDx && o.dy === prevDy);
+    if (straight && Math.random() < .62) return straight;
+    return forward[Math.floor(Math.random() * forward.length)];
+  }
+  function advanceCar(c, world, dt) {
+    if (!c.alive) return;
+    const turn = Math.abs(angleDelta(c.heading, c.targetHeading));
+    const slow = 1 - Math.min(.42, turn * .55);
+    c.t += dt * c.speed * slow;
+    if (c.t >= 1) {
+      const over = Math.min(.55, c.t - 1);
+      const tx = Math.round(c.toX - .5), ty = Math.round(c.toY - .5);
+      const next = carNextStep(world, tx, ty, c.dx, c.dy);
+      if (!next) { c.alive = false; return; }
+      // Allow a single U-turn in a dead end, then recycle the car instead of
+      // letting it bounce endlessly up and down the same stub.
+      if (next.reverse) {
+        if (c.uTurns > 0) { c.alive = false; return; }
+        c.uTurns++;
+      } else {
+        c.uTurns = 0;
+      }
+      c.fromX = c.toX; c.fromY = c.toY;
+      c.toX = tx + next.dx + .5; c.toY = ty + next.dy + .5;
+      c.dx = next.dx; c.dy = next.dy;
+      c.targetHeading = carDirAngle(next.dx, next.dy);
+      c.dir = next.dx > 0 ? 'x' : next.dx < 0 ? '-x' : next.dy > 0 ? 'y' : '-y';
+      c.t = over;
+    }
+    // Smoothly steer toward the new heading, and light the brake lamps while turning.
+    c.heading += angleDelta(c.heading, c.targetHeading) * Math.min(1, dt * 9);
+    c.brake = Math.max(0, Math.min(1, Math.abs(angleDelta(c.heading, c.targetHeading)) * 2.4));
+    c.bob += dt * (5 + c.speed * 6);
+    c.x = lerp(c.fromX, c.toX, c.t);
+    c.y = lerp(c.fromY, c.toY, c.t);
   }
   function spawnCars(initial) {
     const roads = allRoads();
     if (!roads.length) return;
     const cap = Math.min(16, Math.floor(roads.length / 2.4));
-    while (state.cars.length < cap) {
+    let guard = 0;
+    while (state.cars.length < cap && guard++ < 80) {
       const r = roads[Math.floor(Math.random() * roads.length)];
-      const c = newCar(r.x, r.y);
-      if (!c) break;
-      c.t = initial ? Math.random() : 0;
-      c.x = lerp(c.fromX, c.toX, c.t); c.y = lerp(c.fromY, c.toY, c.t);
+      const c = makeCar(state, r.x, r.y, initial);
+      if (!c) continue;
       state.cars.push(c);
-      if (state.cars.length > 40) break;
     }
   }
   function ensureCars() { spawnCars(); }
   function updateCars(dt) {
     if (!state || !state.cars) return;
-    for (const c of state.cars) {
-      if (!c.alive) continue;
-      c.t += dt * c.speed;
-      if (c.t >= 1) {
-        const tx = Math.round(c.toX - .5), ty = Math.round(c.toY - .5);
-        c.fromX = c.toX; c.fromY = c.toY;
-        const choices = [];
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          const nx = tx + dx, ny = ty + dy;
-          if (inBounds(nx, ny) && state.grid[idx(nx, ny)].road) {
-            if (dx === -c.dx && dy === -c.dy && choices.length) continue;
-            choices.push({ x: nx, y: ny, dx, dy });
-          }
-        }
-        if (!choices.length) { c.alive = false; continue; }
-        const pick = choices[Math.floor(Math.random() * choices.length)];
-        c.toX = pick.x + .5; c.toY = pick.y + .5;
-        c.dir = pick.dx > 0 ? 'x' : pick.dx < 0 ? '-x' : pick.dy > 0 ? 'y' : '-y';
-        c.t = 0;
-      }
-      c.x = lerp(c.fromX, c.toX, c.t);
-      c.y = lerp(c.fromY, c.toY, c.t);
-    }
+    for (const c of state.cars) advanceCar(c, state, dt);
     state.cars = state.cars.filter(c => c.alive);
     const roads = allRoads();
-    if (state.cars.length < Math.min(14, Math.floor(roads.length / 2.4)) && Math.random() < .02) {
-      const r = roads[Math.floor(Math.random() * roads.length)];
-      if (r) { const c = newCar(r.x, r.y); if (c) state.cars.push(c); }
+    const target = Math.min(14, Math.floor(roads.length / 2.4));
+    if (state.cars.length < target && Math.random() < Math.min(1, dt * 1.8)) {
+      for (let tries = 0; tries < 6; tries++) {
+        const r = roads[Math.floor(Math.random() * roads.length)];
+        const c = r && makeCar(state, r.x, r.y, true);
+        if (c) { state.cars.push(c); break; }
+      }
     }
   }
 
@@ -1441,7 +1488,6 @@ window.KK = window.KK || {};
       const interval = tickInterval();
       while (simAcc >= interval && steps < 5) { simAcc -= interval; simulateTick(); steps++; }
     }
-    $('#timebar').style.setProperty('--time-progress', `${clamp(simAcc / tickInterval(), 0, 1) * 100}%`);
     const nf = nightFactor(state.hour);
     KK.render.drawWorld(ctx, state, cam, viewW, viewH, cam.zoom, now / 1000, {
       dpr, night: nf.night, dusk: nf.dusk, ghost: buildGhost(), selected: state.selected
@@ -1486,37 +1532,23 @@ window.KK = window.KK || {};
     for (let i = 0; i < grid.length; i++) if (grid[i].road) roads.push({ x: i % size, y: Math.floor(i / size) });
     for (let i = 0; i < 11 && roads.length; i++) {
       const r = roads[(i * 7) % roads.length];
-      const choices = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => ({ x: r.x + dx, y: r.y + dy, dx, dy }))
-        .filter(c => c.x >= 0 && c.y >= 0 && c.x < size && c.y < size && grid[c.y * size + c.x].road);
-      if (!choices.length) continue;
-      const c = choices[i % choices.length];
-      w.cars.push({
-        x: r.x + .5, y: r.y + .5, fromX: r.x + .5, fromY: r.y + .5, toX: c.x + .5, toY: c.y + .5, t: Math.random(),
-        speed: .3 + Math.random() * .35, color: CAR_COLORS[i % CAR_COLORS.length],
-        dir: c.dx > 0 ? 'x' : c.dx < 0 ? '-x' : c.dy > 0 ? 'y' : '-y'
-      });
+      const c = makeCar(w, r.x, r.y, true);
+      if (c) w.cars.push(c);
     }
     return w;
   }
   function updateHeroCars(dt) {
     if (!heroWorld) return;
-    for (const c of heroWorld.cars) {
-      c.t += dt * c.speed;
-      if (c.t >= 1) {
-        const tx = Math.round(c.toX - .5), ty = Math.round(c.toY - .5);
-        c.fromX = c.toX; c.fromY = c.toY;
-        const choices = [];
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          const nx = tx + dx, ny = ty + dy;
-          if (nx >= 0 && ny >= 0 && nx < heroWorld.gridSize && ny < heroWorld.gridSize && heroWorld.grid[ny * heroWorld.gridSize + nx].road) choices.push({ x: nx, y: ny, dx, dy });
-        }
-        if (!choices.length) { c.t = 0; continue; }
-        const p = choices[Math.floor(Math.random() * choices.length)];
-        c.toX = p.x + .5; c.toY = p.y + .5;
-        c.dir = p.dx > 0 ? 'x' : p.dx < 0 ? '-x' : p.dy > 0 ? 'y' : '-y';
-        c.t = 0;
+    for (const c of heroWorld.cars) advanceCar(c, heroWorld, dt);
+    heroWorld.cars = heroWorld.cars.filter(c => c.alive);
+    if (heroWorld.cars.length < 11) {
+      const size = heroWorld.gridSize, roads = [];
+      for (let i = 0; i < heroWorld.grid.length; i++) if (heroWorld.grid[i].road) roads.push({ x: i % size, y: Math.floor(i / size) });
+      for (let tries = 0; tries < 8 && heroWorld.cars.length < 11 && roads.length; tries++) {
+        const r = roads[Math.floor(Math.random() * roads.length)];
+        const c = makeCar(heroWorld, r.x, r.y, true);
+        if (c) heroWorld.cars.push(c);
       }
-      c.x = lerp(c.fromX, c.toX, c.t); c.y = lerp(c.fromY, c.toY, c.t);
     }
   }
   function layoutHero() {
