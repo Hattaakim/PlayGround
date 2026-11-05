@@ -660,15 +660,6 @@ kbd{background:#f0f6f3;border:1px solid var(--line-strong);border-bottom-width:2
 .period-control>span{color:rgba(222,255,249,.76)}
 #periodSelect{border-color:rgba(226,255,250,.3);background-color:rgba(211,255,246,.15)}
 #periodSelect:hover{background-color:rgba(211,255,246,.23)}
-#timebar .time-progress{
-  position:absolute;left:0;right:0;bottom:0;height:3px;overflow:hidden;
-  background:rgba(216,255,246,.1);pointer-events:none;
-}
-#timebar .time-progress i{
-  display:block;width:var(--time-progress,0%);height:100%;border-radius:0 3px 3px 0;
-  background:linear-gradient(90deg,#69e6c2,#ffe18a);box-shadow:0 0 10px rgba(105,230,194,.7);
-  transition:width .12s linear;
-}
 #timebar .icon-btn:focus-visible,#speedGroup button:focus-visible,#periodSelect:focus-visible{
   outline:2px solid #ffe18a;outline-offset:2px;
 }
@@ -679,7 +670,6 @@ kbd{background:#f0f6f3;border:1px solid var(--line-strong);border-bottom-width:2
   .period-control>span{font-size:6.5px}
   #periodSelect{width:84px;padding-left:8px;padding-right:25px}
   .time-info{min-width:0}
-  #timebar .time-progress{height:2px}
 }
 @media(max-width:360px){
   #timebar{gap:4px;padding:0 6px}

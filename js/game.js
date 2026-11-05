@@ -1546,7 +1546,6 @@ window.KK = window.KK || {};
       const interval = tickInterval();
       while (simAcc >= interval && steps < 5) { simAcc -= interval; simulateTick(); steps++; }
     }
-    $('#timebar').style.setProperty('--time-progress', `${clamp(simAcc / tickInterval(), 0, 1) * 100}%`);
     const nf = nightFactor(state.hour);
     KK.render.drawWorld(ctx, state, cam, viewW, viewH, cam.zoom, now / 1000, {
       dpr, night: nf.night, dusk: nf.dusk, ghost: buildGhost(), selected: state.selected
