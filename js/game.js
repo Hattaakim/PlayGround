@@ -1353,7 +1353,7 @@ window.KK = window.KK || {};
     const g = screenToGrid(clientX, clientY);
     g.x = Math.floor(g.fx); g.y = Math.floor(g.fy);
     if (!inBounds(g.x, g.y)) return;
-    if ($('#sidePanel').classList.contains('mobile-open')) $('#sidePanel').classList.remove('mobile-open');
+    if ($('#sidePanel').classList.contains('mobile-open')) closeSide();
     if (state.tool === 'bulldoze') {
       const before = state.money;
       bulldozeAt(g.x, g.y);
@@ -1511,8 +1511,7 @@ window.KK = window.KK || {};
     });
     $('#catalogClose').onclick = () => $('#catalog').classList.add('hidden');
     $('#sideBtn').onclick = toggleSide;
-    $('#sideClose').onclick = () => { $('#sidePanel').classList.add('hidden'); $('#sidePanel').classList.remove('mobile-open'); };
-    $('#mobilePanelBtn').onclick = () => $('#sidePanel').classList.add('mobile-open');
+    $('#sideClose').onclick = closeSide;
     $('#policyBtn').onclick = showPolicies;
     $('#helpBtn').onclick = showHelp;
     $('#saveBtn').onclick = () => saveGame(false);
@@ -1567,10 +1566,23 @@ window.KK = window.KK || {};
     window.addEventListener('resize', resize);
   }
   function toggleSide() {
-    const el = $('#sidePanel');
-    if (innerWidth <= 980) el.classList.toggle('mobile-open');
-    else el.classList.toggle('hidden');
+    const panel = $('#sidePanel');
+    let isOpen;
+    if (innerWidth <= 980) {
+      isOpen = panel.classList.toggle('mobile-open');
+      if (isOpen) panel.classList.remove('hidden');
+    } else {
+      panel.classList.toggle('hidden');
+      isOpen = !panel.classList.contains('hidden');
+    }
+    $('#sideBtn').setAttribute('aria-expanded', String(isOpen));
     sfx.click();
+  }
+  function closeSide() {
+    const panel = $('#sidePanel');
+    panel.classList.add('hidden');
+    panel.classList.remove('mobile-open');
+    $('#sideBtn').setAttribute('aria-expanded', 'false');
   }
 
   // ---------- render loop ----------

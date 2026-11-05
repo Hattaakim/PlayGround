@@ -24,6 +24,6 @@ Open <http://localhost:3000>. No build step or external packages are required.
 
 - **Desktop:** choose a category and building from the side panels, then click a map tile to build. Drag the map to pan and use the mouse wheel to zoom.
 - **Touchscreen:** choose a category and building, then tap a tile. Drag to pan and pinch to zoom.
-- Use the in-game help button for a guided introduction. The toolbar also includes save, sound, and city-statistics controls.
+- Use the in-game help button for a guided introduction. The top-right toolbar includes save, sound, settings, and the city-summary control.
 
 Cities are saved in the browser's local storage. Use the in-game save button to save manually; the game also saves automatically as you play.
