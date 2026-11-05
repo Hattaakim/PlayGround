@@ -1442,6 +1442,13 @@ window.KK = window.KK || {};
   function onPointerLeave() { if (!dragStart) hideCursorHint(); }
 
   function bindInput() {
+    document.addEventListener('click', e => {
+      const button = e.target.closest?.('button:not(:disabled)');
+      if (!button || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      button.classList.remove('button-feedback');
+      void button.offsetWidth;
+      button.classList.add('button-feedback');
+    });
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('pointerup', onPointerUp);
