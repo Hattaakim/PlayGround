@@ -210,12 +210,24 @@ button:focus-visible,input:focus-visible{outline:3px solid #ffcf5f;outline-offse
 .catalog-foot{padding:9px 14px;border-top:1px solid var(--line);font-size:10px;color:var(--ink-faint);display:flex;align-items:center;min-height:36px}
 .catalog-foot b{color:var(--teal-dark)}
 
-/* ---------- side panel ---------- */
-#sidePanel{
-  position:absolute;right:14px;top:calc(88px + var(--safe-top));bottom:96px;width:302px;border-radius:20px;z-index:11;overflow:hidden;
-  transition:opacity .2s,transform .24s cubic-bezier(.2,.9,.3,1);
+/* ---------- centered city summary ---------- */
+#summaryBackdrop{
+  position:absolute;inset:0;z-index:60;overflow:hidden;opacity:0;pointer-events:none;
+  background:rgba(5,25,31,.28);-webkit-backdrop-filter:blur(11px) saturate(.72);backdrop-filter:blur(11px) saturate(.72);
+  transition:opacity .22s ease;
 }
-#sidePanel.hidden{opacity:0;transform:translateX(16px);pointer-events:none}
+.summary-backdrop::after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.22;
+  background-image:linear-gradient(rgba(222,255,248,.2) 1px,transparent 1px),linear-gradient(90deg,rgba(222,255,248,.2) 1px,transparent 1px);
+  background-size:18px 18px;mix-blend-mode:soft-light;
+}
+#summaryBackdrop.is-open{opacity:1;pointer-events:auto}
+#sidePanel{
+  position:absolute;left:50%;top:50%;right:auto;bottom:auto;width:min(480px,calc(100vw - 32px));height:min(760px,calc(100vh - 48px - var(--safe-top) - var(--safe-bottom)));max-height:calc(100% - 32px);
+  border-radius:22px;z-index:61;overflow:hidden;transform:translate(-50%,-50%);opacity:1;
+  transition:opacity .22s ease,transform .28s cubic-bezier(.2,.9,.3,1);
+}
+#sidePanel.hidden{opacity:0;transform:translate(-50%,calc(-50% + 12px)) scale(.98);pointer-events:none}
 .notifications-panel{position:absolute;top:calc(86px + var(--safe-top));right:16px;width:min(370px,calc(100vw - 32px));max-height:calc(100% - 112px);display:flex;flex-direction:column;border-radius:18px;z-index:25;overflow:hidden}
 .notifications-panel[hidden]{display:none}
 .notifications-head{display:flex;align-items:center;justify-content:space-between;padding:14px 15px 12px;border-bottom:1px solid var(--line);background:rgba(14,124,114,.035)}
@@ -255,6 +267,32 @@ button:focus-visible,input:focus-visible{outline:3px solid #ffcf5f;outline-offse
 .expand-city-wrap small{display:block;padding:5px 2px 0;color:var(--ink-faint);font-size:9px}
 .side-section{padding:12px 0;border-bottom:1px solid var(--line)}
 .section-label{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)}
+.daily-challenge-summary{display:flex;align-items:center;gap:6px;flex:none}
+.daily-challenge-day,.daily-challenge-count{font-size:9px;font-weight:800;white-space:nowrap;border-radius:20px;padding:3px 7px}
+.daily-challenge-day{color:var(--teal-dark);background:var(--mint)}
+.daily-challenge-count{color:#7b5a07;background:rgba(255,198,74,.22)}
+.daily-challenge-list{display:flex;flex-direction:column;gap:7px;margin-top:9px}
+.daily-challenge{display:flex;align-items:center;gap:9px;padding:9px;border:1px solid var(--line-strong);border-radius:12px;background:linear-gradient(135deg,rgba(14,124,114,.055),rgba(14,124,114,.018));transition:border-color .18s,background .18s,transform .18s}
+.daily-challenge.ready{border-color:rgba(35,170,112,.32);background:linear-gradient(135deg,rgba(35,170,112,.11),rgba(35,170,112,.035))}
+.daily-challenge.claimed{opacity:.7}
+.daily-challenge-copy{min-width:0;flex:1}
+.daily-challenge-title{color:var(--ink);font-size:10px;font-weight:800;line-height:1.3}
+.daily-challenge-desc{margin-top:2px;color:var(--ink-soft);font-size:9px;line-height:1.35}
+.daily-progress{height:5px;margin-top:7px;overflow:hidden;border-radius:5px;background:rgba(9,57,62,.11)}
+.daily-progress span{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#12a091,#52d09c);transition:width .35s ease}
+.daily-challenge.ready .daily-progress span{background:linear-gradient(90deg,#1d9a69,#50d18b)}
+.daily-challenge-meta{margin-top:4px;color:var(--ink-faint);font-size:8.5px;font-weight:700}
+.daily-claim{flex:none;min-width:54px;min-height:29px;padding:0 8px;border:1px solid rgba(14,124,114,.2);border-radius:8px;background:rgba(14,124,114,.1);color:var(--teal-dark);font:800 9px/1 "KotaBody",sans-serif;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
+.daily-claim:not(:disabled):hover{background:rgba(14,124,114,.2);border-color:rgba(14,124,114,.36);transform:translateY(-1px)}
+.daily-claim:not(:disabled):active{transform:translateY(0)}
+.daily-claim:focus-visible{outline:2px solid var(--teal-2);outline-offset:2px}
+.daily-claim:disabled{color:var(--ink-faint);background:rgba(9,57,62,.045);border-color:var(--line);cursor:default}
+.daily-challenge.claimed .daily-claim{color:#16784e;background:rgba(35,170,112,.1);border-color:rgba(35,170,112,.18)}
+:root[data-theme="dark"] .daily-progress{background:rgba(196,241,232,.12)}
+:root[data-theme="dark"] .daily-challenge{background:linear-gradient(135deg,rgba(104,233,215,.08),rgba(104,233,215,.025))}
+:root[data-theme="dark"] .daily-challenge.ready{border-color:rgba(80,209,139,.32);background:linear-gradient(135deg,rgba(35,170,112,.16),rgba(35,170,112,.05))}
+:root[data-theme="dark"] .daily-claim:disabled{background:rgba(196,241,232,.05)}
+:root[data-theme="dark"] .daily-challenge.claimed .daily-claim{color:#72e6ae}
 .row-between{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11.5px}
 .row-between strong{font-size:15px;font-weight:800;color:var(--teal-dark)}
 .row-between.small{color:var(--ink-soft);font-size:10.5px;padding-top:6px}
@@ -466,8 +504,7 @@ kbd{background:#f0f6f3;border:1px solid var(--line-strong);border-bottom-width:2
   .stat:nth-child(4){display:none}
   .stat{padding:0 8px}
   #catalog{width:320px}
-  #sidePanel{display:none}
-  #sidePanel.mobile-open{display:block;position:fixed;right:10px;top:calc(86px + var(--safe-top));bottom:calc(78px + var(--safe-bottom));width:min(330px,calc(100vw - 20px));z-index:60}
+  #sidePanel{width:min(480px,calc(100vw - 24px));height:min(760px,calc(100vh - 32px - var(--safe-top) - var(--safe-bottom)));border-radius:20px}
 }
 @media(max-width:720px){
   #topbar{height:auto;min-height:58px;padding:7px 9px;gap:8px;border-radius:16px;top:calc(7px + var(--safe-top));left:8px;right:8px;flex-wrap:wrap}

@@ -431,6 +431,9 @@ window.KK = window.KK || {};
         if (t.road) drawRoad(ctx, world, x, y, t);
       }
     }
+    if (opts.placements && opts.placements.length) {
+      drawPlacementCandidates(ctx, opts.placements, { left, right, top, bottom }, time);
+    }
     const objs = [];
     for (const b of world.buildings) {
       const s = iso(b.x, b.y);
@@ -599,6 +602,20 @@ window.KK = window.KK || {};
       ctx.globalAlpha = .24; ctx.fillStyle = '#ffe9a0';
       ctx.beginPath(); ctx.moveTo(-9, -1.5); ctx.lineTo(-22, -7); ctx.lineTo(-22, 4); ctx.closePath(); ctx.fill();
       ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+
+  function drawPlacementCandidates(ctx, candidates, bounds, time) {
+    const pulse = .9 + Math.sin(time * 3.2) * .1;
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    for (const candidate of candidates) {
+      const p = iso(candidate.x + candidate.w / 2, candidate.y + candidate.h / 2);
+      if (p.x < bounds.left - 100 || p.x > bounds.right + 100 ||
+          p.y < bounds.top - 100 || p.y > bounds.bottom + 100) continue;
+      poly(ctx, diamondPoints(candidate.x, candidate.y, candidate.w, candidate.h, .09),
+        'rgba(57,214,157,.16)', 'rgba(29,190,133,.78)', 1.5);
     }
     ctx.restore();
   }

@@ -35,6 +35,8 @@ window.KK = window.KK || {};
   let uiTimer = 0, simAcc = 0, last = performance.now(), running = false;
   let activeCategory = 'infra';
   let hoverTile = null;
+  let placementRevision = 0;
+  let placementCache = { state: null, tool: null, grid: null, revision: -1, affordable: null, candidates: [] };
   let heroTime = 0, heroRaf = 0, heroWorld = null, heroLast = 0, heroCam = { x: -150, y: 290, zoom: 1 };
   let dragState = null;
   let toastTimes = [];
@@ -101,6 +103,7 @@ window.KK = window.KK || {};
     toast(`Kota diperluas menjadi ${newSize} × ${newSize}!`, 'good', 'unlock');
   }
   function tileAt(x, y) { return inBounds(x, y) ? state.grid[idx(x, y)] : null; }
+  function invalidatePlacementCandidates() { placementRevision++; }
   function uid() { state.uid = (state.uid || 0) + 1; return state.uid; }
   function defOf(b) { return DEFS[b.defId]; }
   function nearestUnlock() {
@@ -158,11 +161,36 @@ window.KK = window.KK || {};
       income: 0, expense: 0, net: 0, roadCount: 0, zoneCount: 0,
       hasPower: false, hasWater: false, hasPark: false, hasSchool: false, hasStadium: false,
       demandR: 18, demandC: 8, demandI: 6,
-      missionsDone: {}, won: false, unlocked: {}, eventTimer: 48, warned: {},
+      missionsDone: {}, dailyChallenges: null, won: false, unlocked: {}, eventTimer: 48, warned: {},
       stats: { houses: 0, shops: 0, factories: 0 }, selected: null, started: true,
       tool: null, paused: false, speed: 1, modalPause: false
     };
     return s;
+  }
+
+  function createDailyChallenges(day) {
+    const pool = KK.DAILY_CHALLENGES;
+    const start = (day * 3) % pool.length;
+    return {
+      day,
+      ids: [0, 1, 2].map(offset => pool[(start + offset) % pool.length].id),
+      progress: {},
+      claimed: {}
+    };
+  }
+  function ensureDailyChallenges() {
+    if (!state) return null;
+    const day = Math.floor(Math.max(0, state.elapsedDays || 0));
+    const expected = createDailyChallenges(day);
+    const current = state.dailyChallenges;
+    if (!current || current.day !== day || !Array.isArray(current.ids) ||
+        expected.ids.some((id, i) => current.ids[i] !== id)) {
+      state.dailyChallenges = expected;
+    } else {
+      state.dailyChallenges.progress = current.progress && typeof current.progress === 'object' ? current.progress : {};
+      state.dailyChallenges.claimed = current.claimed && typeof current.claimed === 'object' ? current.claimed : {};
+    }
+    return state.dailyChallenges;
   }
 
   function generateMap(seed) {
@@ -205,6 +233,7 @@ window.KK = window.KK || {};
   function newGame(name) {
     const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
     state = blankState(name);
+    state.dailyChallenges = createDailyChallenges(0);
     const map = generateMap(seed);
     state.grid = map.grid;
     // place initial nature as buildings
@@ -239,6 +268,7 @@ window.KK = window.KK || {};
     }
     state.buildings.push(b);
     if (!opt.free) state.money -= def.cost;
+    invalidatePlacementCandidates();
     return b;
   }
   function removeBuilding(b, refund) {
@@ -249,6 +279,7 @@ window.KK = window.KK || {};
     const i = state.buildings.indexOf(b);
     if (i >= 0) state.buildings.splice(i, 1);
     if (refund) state.money += Math.round(defOf(b).cost * .35);
+    invalidatePlacementCandidates();
     if (state.selected && state.selected.uid === b.uid) { state.selected = null; hideSelection(); }
   }
   function roadAccess(b) {
@@ -292,14 +323,30 @@ window.KK = window.KK || {};
     if (def.kind === 'road') {
       const t = state.grid[idx(x, y)];
       t.road = true; state.money -= def.cost;
+      invalidatePlacementCandidates();
       ensureCars();
     } else {
       addBuilding(defId, x, y, 0);
     }
+    recordDailyPlacement(defId);
     sfx.place();
     recalc(); checkUnlocks(); updateHUD(true); renderCatalog();
     saveGame(true);
     return true;
+  }
+  function recordDailyPlacement(defId) {
+    const daily = ensureDailyChallenges();
+    if (!daily) return;
+    for (const id of daily.ids) {
+      const challenge = KK.DAILY_CHALLENGES.find(item => item.id === id);
+      if (!challenge || !challenge.matches.includes(defId) || daily.claimed[id]) continue;
+      const before = Math.min(challenge.target, Number(daily.progress[id]) || 0);
+      daily.progress[id] = Math.min(challenge.target, before + 1);
+      if (before < challenge.target && daily.progress[id] >= challenge.target) {
+        toast(`Tantangan siap diklaim: ${challenge.title}`, 'reward', 'trophy');
+      }
+    }
+    renderDailyChallenges();
   }
   function forcePlace(defId, x, y, level) {
     const def = DEFS[defId]; if (!def) return null;
@@ -336,6 +383,7 @@ window.KK = window.KK || {};
       sfx.demolish();
     } else if (t.road) {
       t.road = false; state.money += Math.round(DEFS.road.cost * .5);
+      invalidatePlacementCandidates();
       toast('Jalan dibongkar.', 'info', 'trash');
       sfx.demolish();
     } else { return; }
@@ -823,6 +871,7 @@ window.KK = window.KK || {};
     if (!state) return;
     updateHUD(true);
     renderMissions();
+    renderDailyChallenges();
     updateAdvisor();
     updateMinimap();
     updateSelection();
@@ -903,6 +952,52 @@ window.KK = window.KK || {};
     }
     list.innerHTML = html;
     $('#missionCount').textContent = `${done.length}/10`;
+  }
+
+  function renderDailyChallenges() {
+    if (!state) return;
+    const list = $('#dailyChallengeList');
+    if (!list) return;
+    const daily = ensureDailyChallenges();
+    const dayLabel = `Hari ${daily.day + 1}`;
+    let completed = 0;
+    let html = '';
+    for (const id of daily.ids) {
+      const challenge = KK.DAILY_CHALLENGES.find(item => item.id === id);
+      if (!challenge) continue;
+      const progress = Math.min(challenge.target, Math.max(0, Number(daily.progress[id]) || 0));
+      const claimed = !!daily.claimed[id];
+      const ready = progress >= challenge.target;
+      if (claimed) completed++;
+      html += `<article class="daily-challenge ${ready ? 'ready' : ''} ${claimed ? 'claimed' : ''}">
+        <div class="daily-challenge-copy">
+          <div class="daily-challenge-title">${challenge.title}</div>
+          <div class="daily-challenge-desc">${challenge.desc}</div>
+          <div class="daily-progress" role="progressbar" aria-label="${challenge.title}" aria-valuemin="0" aria-valuemax="${challenge.target}" aria-valuenow="${progress}"><span style="width:${Math.round(progress / challenge.target * 100)}%"></span></div>
+          <div class="daily-challenge-meta">${progress}/${challenge.target} · ${money(challenge.reward)}</div>
+        </div>
+        <button class="daily-claim" type="button" data-claim-daily="${challenge.id}" ${!ready || claimed ? 'disabled' : ''}>${claimed ? 'Diklaim' : ready ? 'Klaim' : 'Belum'}</button>
+      </article>`;
+    }
+    list.innerHTML = html;
+    const count = $('#dailyChallengeCount');
+    if (count) count.textContent = `${completed}/3`;
+    const day = $('#dailyChallengeDay');
+    if (day) day.textContent = dayLabel;
+  }
+  function claimDailyChallenge(id) {
+    if (!state) return;
+    const daily = ensureDailyChallenges();
+    if (!daily.ids.includes(id) || daily.claimed[id]) return;
+    const challenge = KK.DAILY_CHALLENGES.find(item => item.id === id);
+    if (!challenge || (Number(daily.progress[id]) || 0) < challenge.target) return;
+    daily.claimed[id] = true;
+    state.money += challenge.reward;
+    sfx.reward();
+    toast(`Tantangan selesai: ${challenge.title} · +${money(challenge.reward)}`, 'reward', 'trophy');
+    updateHUD(true);
+    renderDailyChallenges();
+    saveGame(true);
   }
 
   function updateAdvisor() {
@@ -1233,7 +1328,7 @@ window.KK = window.KK || {};
       v: 2, gridSize: size, cityName: state.cityName, money: state.money, tick: state.tick, hour: state.hour,
       period: state.period, elapsedDays: state.elapsedDays, speed: state.speed,
       taxRate: state.taxRate, policies: state.policies, uid: state.uid,
-      missionsDone: state.missionsDone, won: state.won, maxPop: state.maxPop,
+      missionsDone: state.missionsDone, dailyChallenges: state.dailyChallenges, won: state.won, maxPop: state.maxPop,
       unlocked: state.unlocked, moodBoost: state.moodBoost, eventTimer: state.eventTimer,
       terrain: state.grid.map(t => t.terrain[0]).join(''),
       roads,
@@ -1267,6 +1362,8 @@ window.KK = window.KK || {};
       state.speed = [1, 2, 3].includes(Number(d.speed)) ? Number(d.speed) : 1;
       state.taxRate = d.taxRate || 9; state.policies = d.policies || {};
       state.uid = d.uid || 0; state.missionsDone = d.missionsDone || {};
+      state.dailyChallenges = d.dailyChallenges && typeof d.dailyChallenges === 'object' ? d.dailyChallenges : null;
+      ensureDailyChallenges();
       state.won = !!d.won; state.maxPop = d.maxPop || 0; state.unlocked = d.unlocked || {};
       state.moodBoost = d.moodBoost || 0; state.eventTimer = d.eventTimer || 50;
       const size = state.gridSize;
@@ -1353,7 +1450,6 @@ window.KK = window.KK || {};
     const g = screenToGrid(clientX, clientY);
     g.x = Math.floor(g.fx); g.y = Math.floor(g.fy);
     if (!inBounds(g.x, g.y)) return;
-    if ($('#sidePanel').classList.contains('mobile-open')) closeSide();
     if (state.tool === 'bulldoze') {
       const before = state.money;
       bulldozeAt(g.x, g.y);
@@ -1449,6 +1545,10 @@ window.KK = window.KK || {};
       void button.offsetWidth;
       button.classList.add('button-feedback');
     });
+    $('#dailyChallengeList')?.addEventListener('click', e => {
+      const button = e.target.closest?.('[data-claim-daily]');
+      if (button && !button.disabled) claimDailyChallenge(button.dataset.claimDaily);
+    });
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('pointerup', onPointerUp);
@@ -1512,6 +1612,7 @@ window.KK = window.KK || {};
     $('#catalogClose').onclick = () => $('#catalog').classList.add('hidden');
     $('#sideBtn').onclick = toggleSide;
     $('#sideClose').onclick = closeSide;
+    $('#summaryBackdrop').addEventListener('click', closeSide);
     $('#policyBtn').onclick = showPolicies;
     $('#helpBtn').onclick = showHelp;
     $('#saveBtn').onclick = () => saveGame(false);
@@ -1535,6 +1636,18 @@ window.KK = window.KK || {};
     });
 
     window.addEventListener('keydown', e => {
+      const summaryPanel = $('#sidePanel');
+      if (!summaryPanel.classList.contains('hidden')) {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeSide(); return; }
+        if (e.key === 'Tab') {
+          const focusable = [...summaryPanel.querySelectorAll('button:not(:disabled),a[href],input:not(:disabled),[tabindex]:not([tabindex="-1"])')].filter(el => el.getClientRects().length);
+          if (!focusable.length) { e.preventDefault(); summaryPanel.focus(); return; }
+          const first = focusable[0], last = focusable[focusable.length - 1];
+          if (e.shiftKey && (document.activeElement === first || !summaryPanel.contains(document.activeElement))) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && (document.activeElement === last || !summaryPanel.contains(document.activeElement))) { e.preventDefault(); first.focus(); }
+          return;
+        }
+      }
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (e.key === 'Escape') {
         if ($('#modalRoot').classList.contains('open')) { closeModal(); return; }
@@ -1567,22 +1680,25 @@ window.KK = window.KK || {};
   }
   function toggleSide() {
     const panel = $('#sidePanel');
-    let isOpen;
-    if (innerWidth <= 980) {
-      isOpen = panel.classList.toggle('mobile-open');
-      if (isOpen) panel.classList.remove('hidden');
-    } else {
-      panel.classList.toggle('hidden');
-      isOpen = !panel.classList.contains('hidden');
-    }
-    $('#sideBtn').setAttribute('aria-expanded', String(isOpen));
+    if (panel.classList.contains('hidden')) {
+      panel.classList.remove('hidden');
+      panel.setAttribute('aria-hidden', 'false');
+      $('#summaryBackdrop').classList.add('is-open');
+      $('#summaryBackdrop').setAttribute('aria-hidden', 'false');
+      $('#sideBtn').setAttribute('aria-expanded', 'true');
+      $('#sideClose').focus();
+    } else closeSide();
     sfx.click();
   }
   function closeSide() {
     const panel = $('#sidePanel');
+    if (panel.classList.contains('hidden')) return;
     panel.classList.add('hidden');
-    panel.classList.remove('mobile-open');
+    panel.setAttribute('aria-hidden', 'true');
+    $('#summaryBackdrop').classList.remove('is-open');
+    $('#summaryBackdrop').setAttribute('aria-hidden', 'true');
     $('#sideBtn').setAttribute('aria-expanded', 'false');
+    $('#sideBtn').focus();
   }
 
   // ---------- render loop ----------
@@ -1605,6 +1721,24 @@ window.KK = window.KK || {};
     const chk = canPlace(d, hoverTile.x, hoverTile.y);
     return { def: d, x: hoverTile.x, y: hoverTile.y, valid: chk.ok };
   }
+  function buildPlacementCandidates() {
+    if (!state || !state.tool || state.tool === 'bulldoze') return [];
+    const def = DEFS[state.tool];
+    if (!def) return [];
+    const affordable = state.money >= def.cost;
+    if (placementCache.state === state && placementCache.tool === state.tool &&
+        placementCache.grid === state.grid && placementCache.revision === placementRevision &&
+        placementCache.affordable === affordable) return placementCache.candidates;
+
+    const candidates = [];
+    for (let y = 0; y <= state.gridSize - def.h; y++) {
+      for (let x = 0; x <= state.gridSize - def.w; x++) {
+        if (canPlace(def, x, y).ok) candidates.push({ x, y, w: def.w, h: def.h });
+      }
+    }
+    placementCache = { state, tool: state.tool, grid: state.grid, revision: placementRevision, affordable, candidates };
+    return candidates;
+  }
   let uiAcc = 0;
   function loop(now) {
     requestAnimationFrame(loop);
@@ -1620,7 +1754,7 @@ window.KK = window.KK || {};
     }
     const nf = nightFactor(state.hour);
     KK.render.drawWorld(ctx, state, cam, viewW, viewH, cam.zoom, now / 1000, {
-      dpr, night: nf.night, dusk: nf.dusk, ghost: buildGhost(), selected: state.selected
+      dpr, night: nf.night, dusk: nf.dusk, ghost: buildGhost(), placements: buildPlacementCandidates(), selected: state.selected
     });
     if (now - uiAcc > 700) { uiAcc = now; updateHUD(); updateMinimap(); }
   }
