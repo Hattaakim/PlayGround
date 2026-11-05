@@ -123,30 +123,26 @@ window.KK = window.KK || {};
     if (pop >= 30) return 'Walikota Pemula';
     return 'Walikota Baru';
   }
-  const PERIOD_DAYS = { day: 1, week: 7, month: 30 };
-  const PERIOD_LABELS = { day: 'Hari', week: 'Minggu', month: 'Bulan' };
   const BASE_TICK_SECONDS = 12;
-  function periodScale() { return (PERIOD_DAYS[state.period] || PERIOD_DAYS.week) / 7; }
+  const REAL_DAY_SECONDS = 24 * 60 * 60;
+  const TIME_MODE_LABELS = { daily: 'Harian', realtime: 'Waktu Nyata' };
+  function periodScale() { return 1 / 7; }
   function tickInterval() {
-    const days = PERIOD_DAYS[state?.period] || PERIOD_DAYS.week;
-    // Coarser periods take a little longer, making each calendar jump readable.
-    return BASE_TICK_SECONDS * (1 + .2 * Math.log2(days));
+    return state?.timeMode === 'realtime' ? REAL_DAY_SECONDS : BASE_TICK_SECONDS;
   }
-  function periodNumber() {
-    return Math.floor((state.elapsedDays || 0) / (PERIOD_DAYS[state.period] || PERIOD_DAYS.week)) + 1;
-  }
+  function periodNumber() { return Math.floor(state.elapsedDays || 0) + 1; }
   function pad2(n) { return String(Math.floor(n)).padStart(2, '0'); }
   function timeOfDayLabel(hour) {
     if (hour < 5 || hour >= 20) return 'Malam';
     if (hour < 10) return 'Pagi';
-    if (hour < 15) return 'Siang';
-    if (hour < 18) return 'Sore';
-    return 'Senja';
+    if (hour < 16) return 'Siang';
+    return 'Sore';
   }
   function dateText() {
-    const hour = state.hour || 0;
-    const h = Math.floor(hour) % 24;
-    return `${PERIOD_LABELS[state.period] || PERIOD_LABELS.week} ${periodNumber()}, ${pad2(h)}.00 · ${timeOfDayLabel(hour)}`;
+    const hour = ((state.hour || 0) % 24 + 24) % 24;
+    const h = Math.floor(hour);
+    const minute = Math.floor((hour - h) * 60);
+    return `Hari ${periodNumber()}, ${pad2(h)}.${pad2(minute)} · ${timeOfDayLabel(hour)}`;
   }
   function rng(seed) {
     let a = seed >>> 0;
@@ -161,8 +157,8 @@ window.KK = window.KK || {};
   // ---------- state ----------
   function blankState(name) {
     const s = {
-      version: 2, cityName: name || 'Kota Kita', money: 6000, tick: 0, hour: 8.6,
-      period: 'week', elapsedDays: 0, gridSize: GRID,
+      version: 3, cityName: name || 'Kota Kita', money: 6000, tick: 0, hour: 8.6,
+      timeMode: 'daily', elapsedDays: 0, gridSize: GRID,
       taxRate: 9, policies: {}, grid: [], buildings: [], cars: [],
       uid: 0, population: 0, jobs: 0, commercialJobs: 0, industrialJobs: 0, workers: 0,
       happiness: 60, moodBoost: 0, maxPop: 0, powerCap: 0, powerUse: 0, waterCap: 0, waterUse: 0,
@@ -662,8 +658,7 @@ window.KK = window.KK || {};
     if (!state) return;
     state.tick++;
     const scale = periodScale();
-    state.elapsedDays = (state.elapsedDays || 0) + PERIOD_DAYS[state.period];
-    state.hour = (state.hour + .24 * scale) % 24;
+    state.elapsedDays = (state.elapsedDays || 0) + 1;
     state.moodBoost *= Math.pow(.966, scale);
     if (Math.abs(state.moodBoost) < .05) state.moodBoost = 0;
     recalc();
@@ -898,7 +893,7 @@ window.KK = window.KK || {};
     $('#statHappy').textContent = state.happiness;
     $('#statPower').textContent = `${Math.round(state.powerUse)}/${Math.round(state.powerCap)}`;
     $('#statWater').textContent = `${Math.round(state.waterUse)}/${Math.round(state.waterCap)}`;
-    $('#weekLabel').textContent = `${PERIOD_LABELS[state.period] || PERIOD_LABELS.week} ${periodNumber()}`;
+    $('#dayLabel').textContent = `Hari ${periodNumber()}`;
     $('#happyValue').textContent = state.happiness + '%';
     $('#happyBar').style.width = state.happiness + '%';
     $('#incomeValue').textContent = (state.income >= 0 ? '+' : '') + money(state.income);
