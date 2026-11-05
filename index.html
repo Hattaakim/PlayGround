@@ -76,6 +76,8 @@
       </div>
     </header>
 
+    <div id="summaryBackdrop" class="summary-backdrop" aria-hidden="true"></div>
+
     <section id="notificationsPanel" class="panel notifications-panel" aria-label="Notifikasi kota" hidden>
       <div class="notifications-head">
         <div><div class="eyebrow">KABAR KOTA</div><h2>Notifikasi</h2></div>
@@ -99,10 +101,10 @@
       <div class="catalog-foot"><span id="toolHint">Pilih bangunan, lalu klik peta.</span></div>
     </section>
 
-    <aside id="sidePanel" class="panel" aria-label="Ringkasan kota">
+    <aside id="sidePanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="summaryTitle" aria-hidden="true" tabindex="-1">
       <div class="side-scroll">
         <div class="side-head">
-          <div><div class="eyebrow">RINGKASAN</div><h2>Denyut Kotamu</h2></div>
+          <div><div class="eyebrow">RINGKASAN</div><h2 id="summaryTitle">Denyut Kotamu</h2></div>
           <button class="icon-btn ghost side-close" id="sideClose" aria-label="Tutup"><svg class="ic"><use href="#i-close"/></svg></button>
         </div>
 
