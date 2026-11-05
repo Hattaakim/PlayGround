@@ -1612,6 +1612,7 @@ window.KK = window.KK || {};
     $('#catalogClose').onclick = () => $('#catalog').classList.add('hidden');
     $('#sideBtn').onclick = toggleSide;
     $('#sideClose').onclick = closeSide;
+    $('#summaryBackdrop').addEventListener('click', closeSide);
     $('#policyBtn').onclick = showPolicies;
     $('#helpBtn').onclick = showHelp;
     $('#saveBtn').onclick = () => saveGame(false);
