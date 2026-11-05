@@ -44,6 +44,7 @@
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></symbol>
     <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></symbol>
     <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M19.14 12.94a7.5 7.5 0 0 0 .05-1.88l2.03-1.58-2-3.46-2.42.98a7.5 7.5 0 0 0-1.63-.94L14.8 3.5h-4l-.37 2.56a7.5 7.5 0 0 0-1.63.94l-2.42-.98-2 3.46 2.03 1.58a7.5 7.5 0 0 0 0 1.88l-2.03 1.58 2 3.46 2.42-.98a7.5 7.5 0 0 0 1.63.94l.37 2.56h4l.37-2.56a7.5 7.5 0 0 0 1.63-.94l2.42.98 2-3.46z"/><circle cx="12" cy="12" r="3"/></symbol>
   </defs>
 </svg>
 
@@ -68,11 +69,10 @@
       </div>
       <div class="top-actions">
         <button class="icon-btn notification-toggle" id="notificationsBtn" type="button" title="Notifikasi" aria-label="Notifikasi" aria-expanded="false" aria-controls="notificationsPanel"><svg class="ic"><use href="#i-bell"/></svg></button>
-        <button class="icon-btn" id="themeBtn" type="button" title="Aktifkan mode gelap" aria-label="Aktifkan mode gelap"><svg class="ic"><use href="#i-moon"/></svg></button>
-        <button class="icon-btn" id="soundBtn" title="Suara" aria-label="Suara"><svg class="ic"><use href="#i-sound"/></svg></button>
+        <button class="icon-btn" id="settingsBtn" type="button" title="Pengaturan" aria-label="Pengaturan"><svg class="ic"><use href="#i-settings"/></svg></button>
         <button class="icon-btn" id="saveBtn" title="Simpan kota" aria-label="Simpan"><svg class="ic"><use href="#i-save"/></svg></button>
         <button class="icon-btn" id="helpBtn" title="Cara bermain" aria-label="Bantuan"><svg class="ic"><use href="#i-help"/></svg></button>
-        <button class="icon-btn side-toggle" id="sideBtn" title="Panel kota" aria-label="Panel kota"><svg class="ic"><use href="#i-chart"/></svg></button>
+        <button class="icon-btn side-toggle" id="sideBtn" type="button" title="Ringkasan kota" aria-label="Ringkasan kota" aria-expanded="false" aria-controls="sidePanel"><svg class="ic"><use href="#i-chart"/></svg></button>
       </div>
     </header>
 
@@ -147,27 +147,11 @@
 
     <div id="timebar" class="panel">
       <button class="icon-btn round" id="pauseBtn" aria-label="Jeda"><svg class="ic"><use href="#i-pause"/></svg></button>
-      <label class="period-control">
-        <span>PERIODE</span>
-        <select id="periodSelect" aria-label="Periode simulasi" title="Panjang satu langkah simulasi; ekonomi dan pertumbuhan menyesuaikan durasi">
-          <option value="day">Harian</option>
-          <option value="week" selected>Mingguan</option>
-          <option value="month">Bulanan</option>
-        </select>
-      </label>
-      <div class="speed-group" id="speedGroup" aria-label="Kecepatan waktu">
-        <button data-speed="1" class="active">1×</button>
-        <button data-speed="2">2×</button>
-        <button data-speed="3">3×</button>
-      </div>
-      <div class="time-sep"></div>
       <div class="time-info"><span id="weekLabel">Minggu 1</span><small id="nextUnlock">Bangun kotamu dari nol</small></div>
-      <div class="time-progress" aria-hidden="true"><i></i></div>
     </div>
 
     <div id="cursorHint" class="cursor-hint"></div>
     <div id="selectionCard" class="panel" hidden></div>
-    <button id="mobilePanelBtn" class="panel" aria-label="Panel kota"><svg class="ic"><use href="#i-chart"/></svg><span>Kota</span></button>
   </div>
 
   <div id="startScreen">

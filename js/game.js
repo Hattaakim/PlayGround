@@ -122,7 +122,7 @@ window.KK = window.KK || {};
   }
   const PERIOD_DAYS = { day: 1, week: 7, month: 30 };
   const PERIOD_LABELS = { day: 'Hari', week: 'Minggu', month: 'Bulan' };
-  const BASE_TICK_SECONDS = 4.8;
+  const BASE_TICK_SECONDS = 12;
   function periodScale() { return (PERIOD_DAYS[state.period] || PERIOD_DAYS.week) / 7; }
   function tickInterval() {
     const days = PERIOD_DAYS[state?.period] || PERIOD_DAYS.week;
@@ -607,7 +607,7 @@ window.KK = window.KK || {};
     state.tick++;
     const scale = periodScale();
     state.elapsedDays = (state.elapsedDays || 0) + PERIOD_DAYS[state.period];
-    state.hour = (state.hour + .36 * scale) % 24;
+    state.hour = (state.hour + .24 * scale) % 24;
     state.moodBoost *= Math.pow(.966, scale);
     if (Math.abs(state.moodBoost) < .05) state.moodBoost = 0;
     recalc();
@@ -863,10 +863,16 @@ window.KK = window.KK || {};
     }
     // speed / pause
     const pb = $('#pauseBtn');
-    pb.innerHTML = icon(state.paused ? 'play' : 'pause');
+    if (pb) {
+      pb.innerHTML = icon(state.paused ? 'play' : 'pause');
+      pb.setAttribute('aria-label', state.paused ? 'Lanjutkan' : 'Jeda');
+    }
     $$('#speedGroup button').forEach(b => b.classList.toggle('active', Number(b.dataset.speed) === state.speed));
-    $('#periodSelect').value = PERIOD_DAYS[state.period] ? state.period : 'week';
-    $('#periodSelect').title = `Satu langkah memajukan ${PERIOD_DAYS[state.period] || PERIOD_DAYS.week} hari. Kecepatan ${state.speed}×.`;
+    const periodSelect = $('#periodSelect');
+    if (periodSelect) {
+      periodSelect.value = PERIOD_DAYS[state.period] ? state.period : 'week';
+      periodSelect.title = `Satu langkah memajukan ${PERIOD_DAYS[state.period] || PERIOD_DAYS.week} hari. Kecepatan ${state.speed}×.`;
+    }
     // tool / unlock info
     let hint;
     if (state.tool && state.tool !== 'bulldoze' && DEFS[state.tool]) {
@@ -1006,6 +1012,70 @@ window.KK = window.KK || {};
     const root = $('#modalRoot');
     root.classList.remove('open'); root.innerHTML = '';
     if (state) state.modalPause = false;
+  }
+  function showSettings() {
+    const modal = openModal(`
+      <button class="icon-btn ghost modal-x" aria-label="Tutup">${icon('close')}</button>
+      <div class="modal-kicker">PREFERENSI KOTA</div>
+      <h2>Pengaturan</h2>
+      <p>Atur suasana dan ritme simulasi sesuai cara bermainmu.</p>
+      <div class="settings-list">
+        <section class="settings-row">
+          <div><b>Kecepatan waktu</b><small>Atur laju perkembangan kota</small></div>
+          <div class="speed-group settings-speed" id="speedGroup" aria-label="Kecepatan waktu">
+            <button type="button" data-speed="1">1×</button>
+            <button type="button" data-speed="2">2×</button>
+            <button type="button" data-speed="3">3×</button>
+          </div>
+        </section>
+        <label class="settings-row" for="periodSelect">
+          <span><b>Periode simulasi</b><small>Durasi tiap langkah ekonomi</small></span>
+          <select id="periodSelect" aria-label="Periode simulasi">
+            <option value="day">Harian</option><option value="week">Mingguan</option><option value="month">Bulanan</option>
+          </select>
+        </label>
+        <section class="settings-row">
+          <div><b>Suara</b><small>Efek suara permainan</small></div>
+          <button class="settings-toggle" id="settingsSoundBtn" type="button" aria-pressed="true"></button>
+        </section>
+        <section class="settings-row">
+          <div><b>Tema</b><small>Tampilan terang atau gelap</small></div>
+          <button class="settings-toggle" id="settingsThemeBtn" type="button"></button>
+        </section>
+      </div>`, { pause: false });
+    modal.classList.add('settings-modal');
+    const soundBtn = modal.querySelector('#settingsSoundBtn');
+    const themeBtn = modal.querySelector('#settingsThemeBtn');
+    const syncSettings = () => {
+      soundBtn.innerHTML = `${icon(soundOn ? 'sound' : 'mute')} ${soundOn ? 'Aktif' : 'Mati'}`;
+      soundBtn.setAttribute('aria-pressed', String(soundOn));
+      const dark = document.documentElement.dataset.theme === 'dark';
+      themeBtn.innerHTML = `${icon(dark ? 'moon' : 'sun')} ${dark ? 'Gelap' : 'Terang'}`;
+      themeBtn.setAttribute('aria-label', `Tema ${dark ? 'gelap' : 'terang'}; klik untuk mengganti`);
+    };
+    syncSettings();
+    if (state) updateHUD();
+    modal.querySelector('#speedGroup').addEventListener('click', e => {
+      const button = e.target.closest('button'); if (!button || !state) return;
+      state.speed = Number(button.dataset.speed);
+      updateHUD(true); saveGame(true); sfx.click();
+    });
+    modal.querySelector('#periodSelect').addEventListener('change', e => {
+      if (!state || !PERIOD_DAYS[e.target.value]) return;
+      const progress = clamp(simAcc / tickInterval(), 0, 1);
+      state.period = e.target.value;
+      simAcc = progress * tickInterval();
+      updateHUD(true); saveGame(true); sfx.click();
+    });
+    soundBtn.onclick = () => {
+      soundOn = !soundOn; audio = null; syncSettings();
+      if (soundOn) sfx.click();
+      toast(soundOn ? 'Suara aktif.' : 'Suara dimatikan.', 'info', soundOn ? 'sound' : 'mute');
+    };
+    themeBtn.onclick = () => {
+      setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+      syncSettings(); sfx.click();
+    };
   }
   function showHelp() {
     const steps = [
@@ -1283,7 +1353,7 @@ window.KK = window.KK || {};
     const g = screenToGrid(clientX, clientY);
     g.x = Math.floor(g.fx); g.y = Math.floor(g.fy);
     if (!inBounds(g.x, g.y)) return;
-    if ($('#sidePanel').classList.contains('mobile-open')) $('#sidePanel').classList.remove('mobile-open');
+    if ($('#sidePanel').classList.contains('mobile-open')) closeSide();
     if (state.tool === 'bulldoze') {
       const before = state.money;
       bulldozeAt(g.x, g.y);
@@ -1372,6 +1442,13 @@ window.KK = window.KK || {};
   function onPointerLeave() { if (!dragStart) hideCursorHint(); }
 
   function bindInput() {
+    document.addEventListener('click', e => {
+      const button = e.target.closest?.('button:not(:disabled)');
+      if (!button || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      button.classList.remove('button-feedback');
+      void button.offsetWidth;
+      button.classList.add('button-feedback');
+    });
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('pointerup', onPointerUp);
@@ -1434,35 +1511,12 @@ window.KK = window.KK || {};
     });
     $('#catalogClose').onclick = () => $('#catalog').classList.add('hidden');
     $('#sideBtn').onclick = toggleSide;
-    $('#sideClose').onclick = () => { $('#sidePanel').classList.add('hidden'); $('#sidePanel').classList.remove('mobile-open'); };
-    $('#mobilePanelBtn').onclick = () => $('#sidePanel').classList.add('mobile-open');
+    $('#sideClose').onclick = closeSide;
     $('#policyBtn').onclick = showPolicies;
     $('#helpBtn').onclick = showHelp;
     $('#saveBtn').onclick = () => saveGame(false);
-    $('#themeBtn').onclick = () => {
-      setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
-      sfx.click();
-    };
-    $('#soundBtn').onclick = () => {
-      soundOn = !soundOn;
-      audio = null;
-      $('#soundBtn').innerHTML = icon(soundOn ? 'sound' : 'mute');
-      if (soundOn) sfx.click();
-      toast(soundOn ? 'Suara aktif.' : 'Suara dimatikan.', 'info', soundOn ? 'sound' : 'mute');
-    };
+    $('#settingsBtn').onclick = showSettings;
     $('#pauseBtn').onclick = () => { if (!state) return; state.paused = !state.paused; updateHUD(true); };
-    $('#speedGroup').addEventListener('click', e => {
-      const b = e.target.closest('button'); if (!b || !state) return;
-      state.speed = Number(b.dataset.speed); state.paused = false;
-      updateHUD(true); saveGame(true); sfx.click();
-    });
-    $('#periodSelect').addEventListener('change', e => {
-      if (!state || !PERIOD_DAYS[e.target.value]) return;
-      const progress = clamp(simAcc / tickInterval(), 0, 1);
-      state.period = e.target.value;
-      simAcc = progress * tickInterval();
-      updateHUD(true); saveGame(true); sfx.click();
-    });
     $('#expandBtn')?.addEventListener('click', expandCity);
     $('#minimap').addEventListener('click', e => {
       if (!state) return;
@@ -1512,18 +1566,36 @@ window.KK = window.KK || {};
     window.addEventListener('resize', resize);
   }
   function toggleSide() {
-    const el = $('#sidePanel');
-    if (innerWidth <= 980) el.classList.toggle('mobile-open');
-    else el.classList.toggle('hidden');
+    const panel = $('#sidePanel');
+    let isOpen;
+    if (innerWidth <= 980) {
+      isOpen = panel.classList.toggle('mobile-open');
+      if (isOpen) panel.classList.remove('hidden');
+    } else {
+      panel.classList.toggle('hidden');
+      isOpen = !panel.classList.contains('hidden');
+    }
+    $('#sideBtn').setAttribute('aria-expanded', String(isOpen));
     sfx.click();
+  }
+  function closeSide() {
+    const panel = $('#sidePanel');
+    panel.classList.add('hidden');
+    panel.classList.remove('mobile-open');
+    $('#sideBtn').setAttribute('aria-expanded', 'false');
   }
 
   // ---------- render loop ----------
   function nightFactor(h) {
     let night = 0, dusk = 0;
-    if (h >= 17 && h < 20) { night = (h - 17) / 3 * .5; dusk = clamp(1 - Math.abs(h - 18.3) / 2.2, 0, 1); }
-    else if (h >= 20 || h < 5) night = .5;
-    else if (h >= 5 && h < 7) { night = .5 * (1 - (h - 5) / 2); dusk = clamp((h - 5) / 2 * .7, 0, .7); }
+    if (h >= 17.5 && h < 20.5) {
+      night = (h - 17.5) / 3 * .38;
+      dusk = clamp(1 - Math.abs(h - 18.8) / 2.2, 0, 1);
+    } else if (h >= 20.5 || h < 5.5) night = .38;
+    else if (h >= 5.5 && h < 7.5) {
+      night = .38 * (1 - (h - 5.5) / 2);
+      dusk = clamp((h - 5.5) / 2 * .65, 0, .65);
+    }
     return { night, dusk };
   }
   function buildGhost() {
@@ -1546,7 +1618,6 @@ window.KK = window.KK || {};
       const interval = tickInterval();
       while (simAcc >= interval && steps < 5) { simAcc -= interval; simulateTick(); steps++; }
     }
-    $('#timebar').style.setProperty('--time-progress', `${clamp(simAcc / tickInterval(), 0, 1) * 100}%`);
     const nf = nightFactor(state.hour);
     KK.render.drawWorld(ctx, state, cam, viewW, viewH, cam.zoom, now / 1000, {
       dpr, night: nf.night, dusk: nf.dusk, ghost: buildGhost(), selected: state.selected
@@ -1712,7 +1783,6 @@ window.KK = window.KK || {};
     } catch (e) {
       setTheme('light', false);
     }
-    $('#soundBtn').innerHTML = icon('sound');
     if (hasSave()) { $('#continueBtn').hidden = false; }
     const startInput = $('#cityNameInput');
     $('#newGameBtn').addEventListener('click', askNewGame);
