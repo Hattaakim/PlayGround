@@ -161,11 +161,36 @@ window.KK = window.KK || {};
       income: 0, expense: 0, net: 0, roadCount: 0, zoneCount: 0,
       hasPower: false, hasWater: false, hasPark: false, hasSchool: false, hasStadium: false,
       demandR: 18, demandC: 8, demandI: 6,
-      missionsDone: {}, won: false, unlocked: {}, eventTimer: 48, warned: {},
+      missionsDone: {}, dailyChallenges: null, won: false, unlocked: {}, eventTimer: 48, warned: {},
       stats: { houses: 0, shops: 0, factories: 0 }, selected: null, started: true,
       tool: null, paused: false, speed: 1, modalPause: false
     };
     return s;
+  }
+
+  function createDailyChallenges(day) {
+    const pool = KK.DAILY_CHALLENGES;
+    const start = (day * 3) % pool.length;
+    return {
+      day,
+      ids: [0, 1, 2].map(offset => pool[(start + offset) % pool.length].id),
+      progress: {},
+      claimed: {}
+    };
+  }
+  function ensureDailyChallenges() {
+    if (!state) return null;
+    const day = Math.floor(Math.max(0, state.elapsedDays || 0));
+    const expected = createDailyChallenges(day);
+    const current = state.dailyChallenges;
+    if (!current || current.day !== day || !Array.isArray(current.ids) ||
+        expected.ids.some((id, i) => current.ids[i] !== id)) {
+      state.dailyChallenges = expected;
+    } else {
+      state.dailyChallenges.progress = current.progress && typeof current.progress === 'object' ? current.progress : {};
+      state.dailyChallenges.claimed = current.claimed && typeof current.claimed === 'object' ? current.claimed : {};
+    }
+    return state.dailyChallenges;
   }
 
   function generateMap(seed) {
@@ -208,6 +233,7 @@ window.KK = window.KK || {};
   function newGame(name) {
     const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
     state = blankState(name);
+    state.dailyChallenges = createDailyChallenges(0);
     const map = generateMap(seed);
     state.grid = map.grid;
     // place initial nature as buildings
@@ -302,10 +328,25 @@ window.KK = window.KK || {};
     } else {
       addBuilding(defId, x, y, 0);
     }
+    recordDailyPlacement(defId);
     sfx.place();
     recalc(); checkUnlocks(); updateHUD(true); renderCatalog();
     saveGame(true);
     return true;
+  }
+  function recordDailyPlacement(defId) {
+    const daily = ensureDailyChallenges();
+    if (!daily) return;
+    for (const id of daily.ids) {
+      const challenge = KK.DAILY_CHALLENGES.find(item => item.id === id);
+      if (!challenge || !challenge.matches.includes(defId) || daily.claimed[id]) continue;
+      const before = Math.min(challenge.target, Number(daily.progress[id]) || 0);
+      daily.progress[id] = Math.min(challenge.target, before + 1);
+      if (before < challenge.target && daily.progress[id] >= challenge.target) {
+        toast(`Tantangan siap diklaim: ${challenge.title}`, 'reward', 'trophy');
+      }
+    }
+    renderDailyChallenges();
   }
   function forcePlace(defId, x, y, level) {
     const def = DEFS[defId]; if (!def) return null;
@@ -830,6 +871,7 @@ window.KK = window.KK || {};
     if (!state) return;
     updateHUD(true);
     renderMissions();
+    renderDailyChallenges();
     updateAdvisor();
     updateMinimap();
     updateSelection();
@@ -910,6 +952,52 @@ window.KK = window.KK || {};
     }
     list.innerHTML = html;
     $('#missionCount').textContent = `${done.length}/10`;
+  }
+
+  function renderDailyChallenges() {
+    if (!state) return;
+    const list = $('#dailyChallengeList');
+    if (!list) return;
+    const daily = ensureDailyChallenges();
+    const dayLabel = `Hari ${daily.day + 1}`;
+    let completed = 0;
+    let html = '';
+    for (const id of daily.ids) {
+      const challenge = KK.DAILY_CHALLENGES.find(item => item.id === id);
+      if (!challenge) continue;
+      const progress = Math.min(challenge.target, Math.max(0, Number(daily.progress[id]) || 0));
+      const claimed = !!daily.claimed[id];
+      const ready = progress >= challenge.target;
+      if (claimed) completed++;
+      html += `<article class="daily-challenge ${ready ? 'ready' : ''} ${claimed ? 'claimed' : ''}">
+        <div class="daily-challenge-copy">
+          <div class="daily-challenge-title">${challenge.title}</div>
+          <div class="daily-challenge-desc">${challenge.desc}</div>
+          <div class="daily-progress" role="progressbar" aria-label="${challenge.title}" aria-valuemin="0" aria-valuemax="${challenge.target}" aria-valuenow="${progress}"><span style="width:${Math.round(progress / challenge.target * 100)}%"></span></div>
+          <div class="daily-challenge-meta">${progress}/${challenge.target} · ${money(challenge.reward)}</div>
+        </div>
+        <button class="daily-claim" type="button" data-claim-daily="${challenge.id}" ${!ready || claimed ? 'disabled' : ''}>${claimed ? 'Diklaim' : ready ? 'Klaim' : 'Belum'}</button>
+      </article>`;
+    }
+    list.innerHTML = html;
+    const count = $('#dailyChallengeCount');
+    if (count) count.textContent = `${completed}/3`;
+    const day = $('#dailyChallengeDay');
+    if (day) day.textContent = dayLabel;
+  }
+  function claimDailyChallenge(id) {
+    if (!state) return;
+    const daily = ensureDailyChallenges();
+    if (!daily.ids.includes(id) || daily.claimed[id]) return;
+    const challenge = KK.DAILY_CHALLENGES.find(item => item.id === id);
+    if (!challenge || (Number(daily.progress[id]) || 0) < challenge.target) return;
+    daily.claimed[id] = true;
+    state.money += challenge.reward;
+    sfx.reward();
+    toast(`Tantangan selesai: ${challenge.title} · +${money(challenge.reward)}`, 'reward', 'trophy');
+    updateHUD(true);
+    renderDailyChallenges();
+    saveGame(true);
   }
 
   function updateAdvisor() {
@@ -1240,7 +1328,7 @@ window.KK = window.KK || {};
       v: 2, gridSize: size, cityName: state.cityName, money: state.money, tick: state.tick, hour: state.hour,
       period: state.period, elapsedDays: state.elapsedDays, speed: state.speed,
       taxRate: state.taxRate, policies: state.policies, uid: state.uid,
-      missionsDone: state.missionsDone, won: state.won, maxPop: state.maxPop,
+      missionsDone: state.missionsDone, dailyChallenges: state.dailyChallenges, won: state.won, maxPop: state.maxPop,
       unlocked: state.unlocked, moodBoost: state.moodBoost, eventTimer: state.eventTimer,
       terrain: state.grid.map(t => t.terrain[0]).join(''),
       roads,
@@ -1274,6 +1362,8 @@ window.KK = window.KK || {};
       state.speed = [1, 2, 3].includes(Number(d.speed)) ? Number(d.speed) : 1;
       state.taxRate = d.taxRate || 9; state.policies = d.policies || {};
       state.uid = d.uid || 0; state.missionsDone = d.missionsDone || {};
+      state.dailyChallenges = d.dailyChallenges && typeof d.dailyChallenges === 'object' ? d.dailyChallenges : null;
+      ensureDailyChallenges();
       state.won = !!d.won; state.maxPop = d.maxPop || 0; state.unlocked = d.unlocked || {};
       state.moodBoost = d.moodBoost || 0; state.eventTimer = d.eventTimer || 50;
       const size = state.gridSize;
@@ -1454,6 +1544,10 @@ window.KK = window.KK || {};
       button.classList.remove('button-feedback');
       void button.offsetWidth;
       button.classList.add('button-feedback');
+    });
+    $('#dailyChallengeList')?.addEventListener('click', e => {
+      const button = e.target.closest?.('[data-claim-daily]');
+      if (button && !button.disabled) claimDailyChallenge(button.dataset.claimDaily);
     });
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
