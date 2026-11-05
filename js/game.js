@@ -123,23 +123,19 @@ window.KK = window.KK || {};
     if (pop >= 30) return 'Walikota Pemula';
     return 'Walikota Baru';
   }
-  const PERIOD_DAYS = { day: 1, week: 7, month: 30 };
-  const PERIOD_LABELS = { day: 'Hari', week: 'Minggu', month: 'Bulan' };
   const BASE_TICK_SECONDS = 12;
-  function periodScale() { return (PERIOD_DAYS[state.period] || PERIOD_DAYS.week) / 7; }
-  function tickInterval() {
-    const days = PERIOD_DAYS[state?.period] || PERIOD_DAYS.week;
-    // Coarser periods take a little longer, making each calendar jump readable.
-    return BASE_TICK_SECONDS * (1 + .2 * Math.log2(days));
-  }
-  function periodNumber() {
-    return Math.floor((state.elapsedDays || 0) / (PERIOD_DAYS[state.period] || PERIOD_DAYS.week)) + 1;
-  }
+  const DAY_SECONDS = 60 * 60;
+  const DAYS_PER_WEEK = 7;
+  function tickInterval() { return BASE_TICK_SECONDS; }
+  function dayNumber() { return Math.floor(state.elapsedDays || 0) + 1; }
   function pad2(n) { return String(Math.floor(n)).padStart(2, '0'); }
   function dateText() {
-    const h = Math.floor(state.hour || 0) % 24;
-    return `${PERIOD_LABELS[state.period] || PERIOD_LABELS.week} ${periodNumber()}, ${pad2(h)}.00`;
+    const totalMinutes = Math.floor((state.hour || 0) * 60);
+    const hours = Math.floor(totalMinutes / 60) % 24;
+    const minutes = totalMinutes % 60;
+    return `Hari ${dayNumber()}, ${pad2(hours)}:${pad2(minutes)}`;
   }
+  function dailyAmount(amount) { return amount / DAYS_PER_WEEK; }
   function dayPhase(hour) {
     if (hour >= 5 && hour < 10) return 'Pagi';
     if (hour >= 10 && hour < 15) return 'Siang';
@@ -159,8 +155,8 @@ window.KK = window.KK || {};
   // ---------- state ----------
   function blankState(name) {
     const s = {
-      version: 2, cityName: name || 'Kota Kita', money: 6000, tick: 0, hour: 8.6,
-      period: 'week', elapsedDays: 0, gridSize: GRID,
+      version: 3, cityName: name || 'Kota Kita', money: 6000, tick: 0, hour: 8.6,
+      elapsedDays: 8.6 / 24, gridSize: GRID,
       taxRate: 9, policies: {}, grid: [], buildings: [], cars: [],
       uid: 0, population: 0, jobs: 0, commercialJobs: 0, industrialJobs: 0, workers: 0,
       happiness: 60, moodBoost: 0, maxPop: 0, powerCap: 0, powerUse: 0, waterCap: 0, waterUse: 0,
@@ -630,9 +626,9 @@ window.KK = window.KK || {};
     state.waterCap = waterCap;
     state.powered = powered;
     state.watered = watered;
-    state.expense = Math.round(expense * 10) / 10;
-    state.income = Math.round(income * 10) / 10;
-    state.net = Math.round((income - expense) * 10) / 10;
+    state.expense = Math.round(dailyAmount(expense) * 10) / 10;
+    state.income = Math.round(dailyAmount(income) * 10) / 10;
+    state.net = Math.round((state.income - state.expense) * 10) / 10;
     state.happiness = Math.round(happiness);
     state.roadCount = roadCount;
     state.zoneCount = zoneCount;
@@ -659,9 +655,10 @@ window.KK = window.KK || {};
   function simulateTick() {
     if (!state) return;
     state.tick++;
-    const scale = periodScale();
-    state.elapsedDays = (state.elapsedDays || 0) + PERIOD_DAYS[state.period];
-    state.hour = (state.hour + .24 * scale) % 24;
+    const dayStep = BASE_TICK_SECONDS / DAY_SECONDS;
+    const scale = dayStep;
+    state.elapsedDays = (state.elapsedDays || 0) + dayStep;
+    state.hour = (state.hour + 24 * dayStep) % 24;
     state.moodBoost *= Math.pow(.966, scale);
     if (Math.abs(state.moodBoost) < .05) state.moodBoost = 0;
     recalc();
@@ -691,7 +688,7 @@ window.KK = window.KK || {};
       }
     }
     if (changed) recalc();
-    state.money += (state.income - state.expense) * scale;
+    state.money += state.net * dayStep;
     // resource warnings
     if (!state.warned.power && state.powerUse > state.powerCap && state.powerUse > 0) {
       toast('Listrik tidak cukup! Bangun pembangkit atau taman surya.', 'bad', 'bolt');
@@ -890,13 +887,13 @@ window.KK = window.KK || {};
     $('#dateLabel').textContent = dateText();
     $('#statMoney').textContent = money(state.money);
     const inc = $('#statIncome');
-    inc.textContent = (state.net >= 0 ? '+' : '') + money(state.net).replace('$', '$') + '/mg';
+    inc.textContent = (state.net >= 0 ? '+' : '') + money(state.net) + '/hari';
     inc.classList.toggle('neg', state.net < 0);
     $('#statPop').textContent = fmt(state.population);
     $('#statHappy').textContent = state.happiness;
     $('#statPower').textContent = `${Math.round(state.powerUse)}/${Math.round(state.powerCap)}`;
     $('#statWater').textContent = `${Math.round(state.waterUse)}/${Math.round(state.waterCap)}`;
-    $('#weekLabel').textContent = `${PERIOD_LABELS[state.period] || PERIOD_LABELS.week} ${periodNumber()}`;
+    $('#gameDayLabel').textContent = `Hari ${dayNumber()} · ${pad2(Math.floor(state.hour))}:${pad2(((Math.floor(state.hour * 60) % 60)))}`;
     $('#dayPhase').textContent = dayPhase(state.hour);
     $('#happyValue').textContent = state.happiness + '%';
     $('#happyBar').style.width = state.happiness + '%';
@@ -924,11 +921,6 @@ window.KK = window.KK || {};
       pb.setAttribute('aria-label', state.paused ? 'Lanjutkan' : 'Jeda');
     }
     $$('#speedGroup button').forEach(b => b.classList.toggle('active', Number(b.dataset.speed) === state.speed));
-    const periodSelect = $('#periodSelect');
-    if (periodSelect) {
-      periodSelect.value = PERIOD_DAYS[state.period] ? state.period : 'week';
-      periodSelect.title = `Satu langkah memajukan ${PERIOD_DAYS[state.period] || PERIOD_DAYS.week} hari. Kecepatan ${state.speed}×.`;
-    }
     // tool / unlock info
     let hint;
     if (state.tool && state.tool !== 'bulldoze' && DEFS[state.tool]) {
@@ -1078,10 +1070,10 @@ window.KK = window.KK || {};
     if (d.kind === 'zone-r') rows = b.level === 0 ? '<span>Menunggu penghuni</span>' : `<span>Level ${b.level}</span><span>${levelVal(d, 'cap', b.level)} warga</span>`;
     else if (d.kind === 'zone-c') rows = b.level === 0 ? '<span>Menunggu usaha</span>' : `<span>Level ${b.level}</span><span>${levelVal(d, 'jobs', b.level)} pekerjaan</span>`;
     else if (d.kind === 'zone-i') rows = b.level === 0 ? '<span>Menunggu pabrik</span>' : `<span>Level ${b.level}</span><span>${levelVal(d, 'jobs', b.level)} pekerjaan</span>`;
-    else if (d.powerSupply) rows = `<span>+${d.powerSupply} listrik</span><span>Biaya ${money(d.maint)}/mg</span>`;
-    else if (d.waterSupply) rows = `<span>+${d.waterSupply} air</span><span>Biaya ${money(d.maint)}/mg</span>`;
-    else if (d.jobs) rows = `<span>${d.jobs} pekerjaan</span><span>Biaya ${money(d.maint)}/mg</span>`;
-    else rows = `<span>${d.maint ? 'Biaya ' + money(d.maint) + '/mg' : 'Dekorasi'}</span>`;
+    else if (d.powerSupply) rows = `<span>+${d.powerSupply} listrik</span><span>Biaya ${money(dailyAmount(d.maint))}/hari</span>`;
+    else if (d.waterSupply) rows = `<span>+${d.waterSupply} air</span><span>Biaya ${money(dailyAmount(d.maint))}/hari</span>`;
+    else if (d.jobs) rows = `<span>${d.jobs} pekerjaan</span><span>Biaya ${money(dailyAmount(d.maint))}/hari</span>`;
+    else rows = `<span>${d.maint ? 'Biaya ' + money(dailyAmount(d.maint)) + '/hari' : 'Dekorasi'}</span>`;
     card.innerHTML = `
       <div class="sel-head"><h3>${d.name}</h3><button class="icon-btn ghost" id="selClose" aria-label="Tutup">${icon('close')}</button></div>
       <div class="sel-sub">${d.desc}</div>
@@ -1130,12 +1122,6 @@ window.KK = window.KK || {};
             <button type="button" data-speed="3">3×</button>
           </div>
         </section>
-        <label class="settings-row" for="periodSelect">
-          <span><b>Periode simulasi</b><small>Durasi tiap langkah ekonomi</small></span>
-          <select id="periodSelect" aria-label="Periode simulasi">
-            <option value="day">Harian</option><option value="week">Mingguan</option><option value="month">Bulanan</option>
-          </select>
-        </label>
         <section class="settings-row">
           <div><b>Suara</b><small>Efek suara permainan</small></div>
           <button class="settings-toggle" id="settingsSoundBtn" type="button" aria-pressed="true"></button>
@@ -1160,13 +1146,6 @@ window.KK = window.KK || {};
     modal.querySelector('#speedGroup').addEventListener('click', e => {
       const button = e.target.closest('button'); if (!button || !state) return;
       state.speed = Number(button.dataset.speed);
-      updateHUD(true); saveGame(true); sfx.click();
-    });
-    modal.querySelector('#periodSelect').addEventListener('change', e => {
-      if (!state || !PERIOD_DAYS[e.target.value]) return;
-      const progress = clamp(simAcc / tickInterval(), 0, 1);
-      state.period = e.target.value;
-      simAcc = progress * tickInterval();
       updateHUD(true); saveGame(true); sfx.click();
     });
     soundBtn.onclick = () => {
@@ -1216,14 +1195,14 @@ window.KK = window.KK || {};
     const policyHtml = KK.POLICIES.map(p => `
       <div class="policy-item" data-pid="${p.id}">
         <div class="policy-info"><div class="policy-name">${p.name}</div><div class="policy-desc">${p.desc}</div></div>
-        <div class="policy-cost">${money(p.cost)}/mg</div>
+        <div class="policy-cost">${money(dailyAmount(p.cost))}/hari</div>
         <button class="switch ${state.policies[p.id] ? 'on' : ''}" aria-label="${p.name}"></button>
       </div>`).join('');
     openModal(`
       <button class="icon-btn ghost modal-x" aria-label="Tutup">${icon('close')}</button>
       <div class="modal-kicker">KEBIJAKAN & PAJAK</div>
       <h2>Atur Kota</h2>
-      <p>Pajak tinggi menambah kas, tapi membuat warga gelisah. Kebijakan kota berjalan otomatis setiap minggu.</p>
+      <p>Pajak tinggi menambah kas, tapi membuat warga gelisah. Kebijakan kota berjalan otomatis setiap hari.</p>
       <div class="tax-box">
         <div class="row-between"><span>Pajak warga</span><strong id="taxVal">${state.taxRate}%</strong></div>
         <input type="range" id="taxRange" min="4" max="15" step="1" value="${state.taxRate}"/>
@@ -1303,7 +1282,7 @@ window.KK = window.KK || {};
           <div class="stat-box"><b>${fmt(state.population)}</b><span>Penduduk</span></div>
           <div class="stat-box"><b>${fmt(state.jobs)}</b><span>Lapangan kerja</span></div>
           <div class="stat-box"><b>${state.happiness}%</b><span>Kebahagiaan</span></div>
-          <div class="stat-box"><b>${PERIOD_LABELS[state.period]} ${periodNumber()}</b><span>Waktu membangun</span></div>
+          <div class="stat-box"><b>Hari ${dayNumber()}</b><span>Waktu membangun</span></div>
         </div>
         <div class="modal-actions" style="justify-content:center"><button class="btn sun" id="winContinue">Terus Membangun</button></div>
         <div class="save-note">Tidak ada batas akhir. Teruskan hingga seluruh peta penuh.</div>
@@ -1332,8 +1311,8 @@ window.KK = window.KK || {};
     const roads = [];
     for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (state.grid[idx(x, y)].road) roads.push(y * size + x);
     return {
-      v: 2, gridSize: size, cityName: state.cityName, money: state.money, tick: state.tick, hour: state.hour,
-      period: state.period, elapsedDays: state.elapsedDays, speed: state.speed,
+      v: 3, gridSize: size, cityName: state.cityName, money: state.money, tick: state.tick, hour: state.hour,
+      elapsedDays: state.elapsedDays, speed: state.speed,
       taxRate: state.taxRate, policies: state.policies, uid: state.uid,
       missionsDone: state.missionsDone, dailyChallenges: state.dailyChallenges, won: state.won, maxPop: state.maxPop,
       unlocked: state.unlocked, moodBoost: state.moodBoost, eventTimer: state.eventTimer,
@@ -1351,21 +1330,20 @@ window.KK = window.KK || {};
     } catch (e) { if (!silent) toast('Gagal menyimpan kota.', 'bad', 'info'); }
   }
   function hasSave() {
-    try { const raw = localStorage.getItem(SAVE_KEY); if (!raw) return false; const d = JSON.parse(raw); return d && d.v === 2; } catch (e) { return false; }
+    try { const raw = localStorage.getItem(SAVE_KEY); if (!raw) return false; const d = JSON.parse(raw); return d && (d.v === 2 || d.v === 3); } catch (e) { return false; }
   }
   function loadGame() {
     try {
       const raw = localStorage.getItem(SAVE_KEY); if (!raw) return false;
       const d = JSON.parse(raw);
-      if (!d || d.v !== 2) return false;
+      if (!d || (d.v !== 2 && d.v !== 3)) return false;
       state = blankState(d.cityName);
       const savedSize = Number(d.gridSize);
       state.gridSize = Number.isInteger(savedSize) && savedSize >= GRID && savedSize <= MAX_GRID_SIZE && (savedSize - GRID) % 8 === 0 ? savedSize : GRID;
       state.money = Number.isFinite(d.money) ? d.money : 6000;
       state.tick = Number.isFinite(d.tick) ? d.tick : 0;
-      state.hour = Number.isFinite(d.hour) ? d.hour : 8.6;
-      state.period = PERIOD_DAYS[d.period] ? d.period : 'week';
-      state.elapsedDays = Number.isFinite(d.elapsedDays) && d.elapsedDays >= 0 ? d.elapsedDays : state.tick * 7;
+      state.hour = Number.isFinite(d.hour) && d.hour >= 0 && d.hour < 24 ? d.hour : 8.6;
+      state.elapsedDays = Number.isFinite(d.elapsedDays) && d.elapsedDays >= 0 ? d.elapsedDays : Math.max(0, state.tick);
       state.speed = [1, 2, 3].includes(Number(d.speed)) ? Number(d.speed) : 1;
       state.taxRate = d.taxRate || 9; state.policies = d.policies || {};
       state.uid = d.uid || 0; state.missionsDone = d.missionsDone || {};
@@ -1979,7 +1957,7 @@ window.KK = window.KK || {};
     forcePlace('small_park', 16, 16, 1);
     forcePlace('lamp', 19, 8, 1);
     state.money = 84200;
-    state.tick = 86; state.elapsedDays = 86 * 7; state.hour = 15.2;
+    state.tick = 86; state.elapsedDays = 86; state.hour = 15.2;
     cam.x = -20; cam.y = 370; cam.zoom = innerWidth < 720 ? .72 : .92;
     recalc(); checkUnlocks(true);
     state.maxPop = 1200;

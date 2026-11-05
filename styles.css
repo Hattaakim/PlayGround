@@ -76,8 +76,6 @@
 :root[data-theme="dark"] .soft-btn:hover{background:linear-gradient(135deg,rgba(62,191,176,.17),rgba(16,39,45,.96))}
 :root[data-theme="dark"] #timebar{background:linear-gradient(150deg,rgba(6,20,25,.98),rgba(10,52,58,.94));border-color:rgba(214,244,236,.12);box-shadow:0 18px 40px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.07)}
 :root[data-theme="dark"] #timebar .icon-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.08)}
-:root[data-theme="dark"] #periodSelect{background-color:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:var(--ink)}
-:root[data-theme="dark"] #periodSelect option{background:#1a2b33;color:var(--ink)}
 :root[data-theme="dark"] .speed-group{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.08)}
 :root[data-theme="dark"] .speed-group button{color:#bfeee7}
 :root[data-theme="dark"] .speed-group button.active{background:linear-gradient(145deg,#ffe28a,#ffb72e);color:#472d00}
@@ -335,22 +333,6 @@ button:focus-visible,input:focus-visible{outline:3px solid #ffcf5f;outline-offse
 }
 #timebar .icon-btn{border:0;background:rgba(255,255,255,.12);width:36px;height:36px;border-radius:10px;color:#fff}
 #timebar .icon-btn:hover{background:rgba(255,255,255,.22)}
-.period-control{display:flex;flex-direction:column;justify-content:center;gap:4px;flex:none;min-width:0}
-.period-control>span{padding-left:2px;color:rgba(222,255,249,.72);font-size:7px;line-height:1;font-weight:900;letter-spacing:.16em}
-#periodSelect{
-  appearance:none;-webkit-appearance:none;display:block;height:30px;width:102px;flex:none;align-self:stretch;
-  padding:0 29px 0 10px;border:1px solid rgba(221,255,248,.27);border-radius:9px;
-  background-color:rgba(205,255,245,.14);
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%23e3fff8' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 9px center;color:#f5fffd;
-  font:750 10px/1 "KotaBody",sans-serif;letter-spacing:.01em;outline:none;cursor:pointer;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 6px rgba(0,20,23,.12);
-  transition:background-color .18s,border-color .18s,box-shadow .18s,transform .18s
-}
-#periodSelect:hover{background-color:rgba(205,255,245,.22);border-color:rgba(231,255,251,.48)}
-#periodSelect:active{transform:translateY(1px)}
-#periodSelect:focus-visible{border-color:rgba(255,225,138,.8);box-shadow:0 0 0 2px rgba(255,198,74,.4),inset 0 1px 0 rgba(255,255,255,.2)}
-#periodSelect option{color:#173b3a;background:#f4fffc;font-weight:700}
 .speed-group{display:flex;background:rgba(0,0,0,.18);border-radius:9px;padding:3px;gap:2px;align-items:center}
 .speed-group button{height:27px;min-width:32px;border-radius:6px;color:#9fd0ca;font-size:10.5px;font-weight:800;transition:.15s}
 .speed-group button:hover{color:#fff}
@@ -371,8 +353,6 @@ button:focus-visible,input:focus-visible{outline:3px solid #ffcf5f;outline-offse
 .settings-speed{flex:none;padding:4px;background:rgba(9,57,62,.09)}
 .settings-speed button{min-width:37px;height:30px;color:var(--ink-soft);font-size:11px}
 .settings-speed button.active{background:var(--teal);color:#fff}
-.settings-row #periodSelect{width:128px;height:36px;align-self:auto;padding:0 28px 0 11px;border-color:var(--line-strong);background-color:var(--panel);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%237b979b' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");color:var(--ink);font:700 11px/1 "KotaBody",sans-serif;box-shadow:none}
-.settings-row #periodSelect:hover{background-color:var(--panel);border-color:var(--teal-2)}
 .settings-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:88px;height:34px;padding:0 11px;border:1px solid var(--line-strong);border-radius:9px;background:var(--panel);color:var(--teal-dark);font-size:10px;font-weight:800}
 .settings-toggle:hover{background:rgba(14,124,114,.1)}
 .settings-toggle .ic{width:15px;height:15px}
@@ -544,7 +524,6 @@ kbd{background:#f0f6f3;border:1px solid var(--line-strong);border-bottom-width:2
   .time-info{min-width:0;flex:1}
   .time-info span{font-size:10px}
   .time-info small{font-size:8.5px;max-width:150px;overflow:hidden;text-overflow:ellipsis}
-  #periodSelect{width:84px;padding:0 25px 0 8px;font-size:9px;background-position:right 7px center}
   .speed-group button{min-width:27px;font-size:9.5px}
   #selectionCard{right:8px;left:8px;bottom:calc(144px + var(--safe-bottom));width:auto;z-index:34}
   .start-content{padding:28px 22px;justify-content:flex-end;max-height:100%;padding-bottom:calc(60px + var(--safe-bottom))}
@@ -703,24 +682,18 @@ kbd{background:#f0f6f3;border:1px solid var(--line-strong);border-bottom-width:2
   content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;
   background:linear-gradient(110deg,rgba(255,255,255,.09),transparent 38%,rgba(132,245,219,.05) 72%,transparent);
 }
-.period-control>span{color:rgba(222,255,249,.76)}
-#periodSelect{border-color:rgba(226,255,250,.3);background-color:rgba(211,255,246,.15)}
-#periodSelect:hover{background-color:rgba(211,255,246,.23)}
-#timebar .icon-btn:focus-visible,#speedGroup button:focus-visible,#periodSelect:focus-visible{
+#timebar .icon-btn:focus-visible,#speedGroup button:focus-visible{
   outline:2px solid #ffe18a;outline-offset:2px;
 }
 #speedGroup button{touch-action:manipulation}
 @media(max-width:720px){
   #topbar,#timebar,.panel,#rail{-webkit-backdrop-filter:blur(17px) saturate(155%);backdrop-filter:blur(17px) saturate(155%)}
   #timebar{gap:6px;padding:0 8px}
-  .period-control>span{font-size:6.5px}
-  #periodSelect{width:84px;padding-left:8px;padding-right:25px}
   .time-info{min-width:0}
 }
 @media(max-width:360px){
   #timebar{gap:4px;padding:0 6px}
   #timebar .icon-btn{width:33px;height:33px}
-  #periodSelect{width:78px;padding-left:7px;padding-right:23px;font-size:8.5px;background-position:right 7px center}
   .speed-group button{min-width:25px}
   .time-info small{max-width:95px}
 }
