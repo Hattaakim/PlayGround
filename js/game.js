@@ -39,7 +39,6 @@ window.KK = window.KK || {};
   let dragState = null;
   let toastTimes = [];
   const notificationHistory = [];
-  let unreadNotifications = 0;
 
   // ---------- audio ----------
   function ac() {
@@ -714,7 +713,7 @@ window.KK = window.KK || {};
     if (!notificationHistory.length) {
       const empty = document.createElement('div');
       empty.className = 'notifications-empty';
-      empty.textContent = 'Belum ada notifikasi. Kabar kota akan muncul di sini.';
+      empty.innerHTML = `<span class="notifications-empty-icon">${icon('bell')}</span><strong>Belum ada kabar</strong><span>Notifikasi terbaru tentang kotamu akan muncul di sini.</span>`;
       list.appendChild(empty);
       return;
     }
@@ -738,12 +737,13 @@ window.KK = window.KK || {};
       list.appendChild(row);
     }
   }
-  function updateNotificationBadge() {
-    const badge = $('#notificationBadge');
-    if (!badge) return;
-    badge.hidden = unreadNotifications < 1;
-    badge.textContent = unreadNotifications > 9 ? '9+' : String(unreadNotifications);
-    $('#notificationsBtn')?.setAttribute('aria-label', unreadNotifications ? `Notifikasi, ${unreadNotifications} belum dibaca` : 'Notifikasi');
+  function animateNotificationBell() {
+    const button = $('#notificationsBtn');
+    if (!button) return;
+    button.classList.remove('is-ringing');
+    // Force a style recalculation so rapid notifications restart the animation.
+    void button.offsetWidth;
+    button.classList.add('is-ringing');
   }
   function toast(msg, type, iconName) {
     const entry = {
@@ -754,8 +754,7 @@ window.KK = window.KK || {};
     };
     notificationHistory.unshift(entry);
     if (notificationHistory.length > 50) notificationHistory.length = 50;
-    unreadNotifications++;
-    updateNotificationBadge();
+    animateNotificationBell();
     renderNotifications();
   }
   function showToast(msg, type, iconName) { toast(msg, type, iconName); }
@@ -1421,8 +1420,6 @@ window.KK = window.KK || {};
       notificationsPanel.hidden = !opening;
       notificationsBtn.setAttribute('aria-expanded', String(opening));
       if (opening) {
-        unreadNotifications = 0;
-        updateNotificationBadge();
         renderNotifications();
         sfx.click();
       }
@@ -1430,8 +1427,6 @@ window.KK = window.KK || {};
     $('#notificationsClose').onclick = closeNotifications;
     $('#clearNotificationsBtn').onclick = () => {
       notificationHistory.length = 0;
-      unreadNotifications = 0;
-      updateNotificationBadge();
       renderNotifications();
     };
     document.addEventListener('keydown', e => {
