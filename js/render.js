@@ -462,7 +462,7 @@ window.KK = window.KK || {};
     // night overlay (screen space)
     if (NIGHT > .02) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = `rgba(14,26,62,${NIGHT * .42})`;
+      ctx.fillStyle = `rgba(14,26,62,${NIGHT * .3})`;
       ctx.fillRect(0, 0, viewW, viewH);
       if (opts.dusk) {
         ctx.fillStyle = `rgba(255,127,58,${opts.dusk * .12})`;
