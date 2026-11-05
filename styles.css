@@ -697,3 +697,17 @@ kbd{background:#f0f6f3;border:1px solid var(--line-strong);border-bottom-width:2
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   #catalog,#sidePanel{background:rgba(239,252,249,.97)}
 }
+
+/* ---------- responsive button feedback ---------- */
+button:not(:disabled){touch-action:manipulation}
+button:not(:disabled):hover{filter:brightness(1.06)}
+button:not(:disabled):active{filter:brightness(1.12);transform:scale(.97)}
+button.button-feedback{animation:button-feedback .26s cubic-bezier(.2,.8,.25,1)}
+@keyframes button-feedback{
+  0%{transform:scale(1);filter:brightness(1)}
+  38%{transform:scale(.94);filter:brightness(1.14)}
+  100%{transform:scale(1);filter:brightness(1)}
+}
+@media(prefers-reduced-motion:reduce){
+  button.button-feedback{animation:none}
+}
