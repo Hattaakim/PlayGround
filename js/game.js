@@ -746,26 +746,17 @@ window.KK = window.KK || {};
     $('#notificationsBtn')?.setAttribute('aria-label', unreadNotifications ? `Notifikasi, ${unreadNotifications} belum dibaca` : 'Notifikasi');
   }
   function toast(msg, type, iconName) {
-    const wrap = $('#toasts');
-    const message = String(msg);
-    const kind = type || 'info';
-    const symbol = iconName || 'info';
-    const entry = { message, type: kind, icon: symbol, date: new Date() };
+    const entry = {
+      message: String(msg),
+      type: type || 'info',
+      icon: iconName || 'info',
+      date: new Date()
+    };
     notificationHistory.unshift(entry);
     if (notificationHistory.length > 50) notificationHistory.length = 50;
     unreadNotifications++;
     updateNotificationBadge();
     renderNotifications();
-    if (!wrap) return;
-    while (wrap.children.length >= 4) wrap.removeChild(wrap.firstChild);
-    const el = document.createElement('div');
-    el.className = 'toast ' + kind;
-    el.innerHTML = icon(symbol);
-    const text = document.createElement('span');
-    text.textContent = message;
-    el.appendChild(text);
-    wrap.appendChild(el);
-    setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, 3600);
   }
   function showToast(msg, type, iconName) { toast(msg, type, iconName); }
 
@@ -1560,6 +1551,7 @@ window.KK = window.KK || {};
       const interval = tickInterval();
       while (simAcc >= interval && steps < 5) { simAcc -= interval; simulateTick(); steps++; }
     }
+    $('#timebar').style.setProperty('--time-progress', `${clamp(simAcc / tickInterval(), 0, 1) * 100}%`);
     const nf = nightFactor(state.hour);
     KK.render.drawWorld(ctx, state, cam, viewW, viewH, cam.zoom, now / 1000, {
       dpr, night: nf.night, dusk: nf.dusk, ghost: buildGhost(), selected: state.selected
