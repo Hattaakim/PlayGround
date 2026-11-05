@@ -211,7 +211,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #ffcf5f;outline-offse
 .catalog-foot b{color:var(--teal-dark)}
 
 /* ---------- centered city summary ---------- */
-.summary-backdrop{
+#summaryBackdrop{
   position:absolute;inset:0;z-index:60;overflow:hidden;opacity:0;pointer-events:none;
   background:rgba(5,25,31,.28);-webkit-backdrop-filter:blur(11px) saturate(.72);backdrop-filter:blur(11px) saturate(.72);
   transition:opacity .22s ease;
@@ -221,7 +221,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #ffcf5f;outline-offse
   background-image:linear-gradient(rgba(222,255,248,.2) 1px,transparent 1px),linear-gradient(90deg,rgba(222,255,248,.2) 1px,transparent 1px);
   background-size:18px 18px;mix-blend-mode:soft-light;
 }
-.summary-backdrop.is-open{opacity:1;pointer-events:auto}
+#summaryBackdrop.is-open{opacity:1;pointer-events:auto}
 #sidePanel{
   position:absolute;left:50%;top:50%;right:auto;bottom:auto;width:min(480px,calc(100vw - 32px));height:min(760px,calc(100vh - 48px - var(--safe-top) - var(--safe-bottom)));max-height:calc(100% - 32px);
   border-radius:22px;z-index:61;overflow:hidden;transform:translate(-50%,-50%);opacity:1;

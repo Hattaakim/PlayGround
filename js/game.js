@@ -35,6 +35,8 @@ window.KK = window.KK || {};
   let uiTimer = 0, simAcc = 0, last = performance.now(), running = false;
   let activeCategory = 'infra';
   let hoverTile = null;
+  let placementRevision = 0;
+  let placementCache = { state: null, tool: null, grid: null, revision: -1, affordable: null, candidates: [] };
   let heroTime = 0, heroRaf = 0, heroWorld = null, heroLast = 0, heroCam = { x: -150, y: 290, zoom: 1 };
   let dragState = null;
   let toastTimes = [];
@@ -101,6 +103,7 @@ window.KK = window.KK || {};
     toast(`Kota diperluas menjadi ${newSize} × ${newSize}!`, 'good', 'unlock');
   }
   function tileAt(x, y) { return inBounds(x, y) ? state.grid[idx(x, y)] : null; }
+  function invalidatePlacementCandidates() { placementRevision++; }
   function uid() { state.uid = (state.uid || 0) + 1; return state.uid; }
   function defOf(b) { return DEFS[b.defId]; }
   function nearestUnlock() {
@@ -239,6 +242,7 @@ window.KK = window.KK || {};
     }
     state.buildings.push(b);
     if (!opt.free) state.money -= def.cost;
+    invalidatePlacementCandidates();
     return b;
   }
   function removeBuilding(b, refund) {
@@ -249,6 +253,7 @@ window.KK = window.KK || {};
     const i = state.buildings.indexOf(b);
     if (i >= 0) state.buildings.splice(i, 1);
     if (refund) state.money += Math.round(defOf(b).cost * .35);
+    invalidatePlacementCandidates();
     if (state.selected && state.selected.uid === b.uid) { state.selected = null; hideSelection(); }
   }
   function roadAccess(b) {
@@ -292,6 +297,7 @@ window.KK = window.KK || {};
     if (def.kind === 'road') {
       const t = state.grid[idx(x, y)];
       t.road = true; state.money -= def.cost;
+      invalidatePlacementCandidates();
       ensureCars();
     } else {
       addBuilding(defId, x, y, 0);
@@ -336,6 +342,7 @@ window.KK = window.KK || {};
       sfx.demolish();
     } else if (t.road) {
       t.road = false; state.money += Math.round(DEFS.road.cost * .5);
+      invalidatePlacementCandidates();
       toast('Jalan dibongkar.', 'info', 'trash');
       sfx.demolish();
     } else { return; }
@@ -1619,6 +1626,24 @@ window.KK = window.KK || {};
     const chk = canPlace(d, hoverTile.x, hoverTile.y);
     return { def: d, x: hoverTile.x, y: hoverTile.y, valid: chk.ok };
   }
+  function buildPlacementCandidates() {
+    if (!state || !state.tool || state.tool === 'bulldoze') return [];
+    const def = DEFS[state.tool];
+    if (!def) return [];
+    const affordable = state.money >= def.cost;
+    if (placementCache.state === state && placementCache.tool === state.tool &&
+        placementCache.grid === state.grid && placementCache.revision === placementRevision &&
+        placementCache.affordable === affordable) return placementCache.candidates;
+
+    const candidates = [];
+    for (let y = 0; y <= state.gridSize - def.h; y++) {
+      for (let x = 0; x <= state.gridSize - def.w; x++) {
+        if (canPlace(def, x, y).ok) candidates.push({ x, y, w: def.w, h: def.h });
+      }
+    }
+    placementCache = { state, tool: state.tool, grid: state.grid, revision: placementRevision, affordable, candidates };
+    return candidates;
+  }
   let uiAcc = 0;
   function loop(now) {
     requestAnimationFrame(loop);
@@ -1634,7 +1659,7 @@ window.KK = window.KK || {};
     }
     const nf = nightFactor(state.hour);
     KK.render.drawWorld(ctx, state, cam, viewW, viewH, cam.zoom, now / 1000, {
-      dpr, night: nf.night, dusk: nf.dusk, ghost: buildGhost(), selected: state.selected
+      dpr, night: nf.night, dusk: nf.dusk, ghost: buildGhost(), placements: buildPlacementCandidates(), selected: state.selected
     });
     if (now - uiAcc > 700) { uiAcc = now; updateHUD(); updateMinimap(); }
   }
