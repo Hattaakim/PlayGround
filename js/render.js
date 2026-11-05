@@ -4,6 +4,8 @@ window.KK = window.KK || {};
   const IX = 32, IY = 16;
   let NIGHT = 0;
   let TIME = 0;
+  let HOUR = 12;
+  let SUN_ELEVATION = 1;
 
   function iso(gx, gy) { return { x: (gx - gy) * IX, y: (gx + gy) * IY }; }
   function isoPts(points) { return points.map(p => iso(p[0], p[1])); }
@@ -84,23 +86,70 @@ window.KK = window.KK || {};
       sp: .0005 + hash3(i, 8, 2) * .0012
     });
   }
+  function skyColors(hour) {
+    const stops = [
+      [0, '#081a38', '#132c50', '#273956'], [4.8, '#10254a', '#354c70', '#526278'],
+      [6.2, '#f08c69', '#f7bd83', '#f5d6a0'], [8, '#73c2e2', '#b9e8ed', '#a8d7ce'],
+      [16, '#55a9d2', '#a9dce6', '#7ec3c7'], [18.2, '#ee8065', '#f4b77c', '#d69d85'],
+      [20, '#283d68', '#475779', '#5a6174'], [24, '#081a38', '#132c50', '#273956']
+    ];
+    let i = 0;
+    while (i < stops.length - 2 && hour > stops[i + 1][0]) i++;
+    const a = stops[i], b = stops[i + 1], t = clamp((hour - a[0]) / (b[0] - a[0]), 0, 1);
+    return [1, 2, 3].map(n => mixColor(a[n], b[n], t));
+  }
   function drawBackground(ctx, w, h, time) {
+    const colors = skyColors(HOUR);
     const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, '#8fd5e8');
-    g.addColorStop(.42, '#bdeaf4');
-    g.addColorStop(1, '#6cb8cc');
+    g.addColorStop(0, colors[0]);
+    g.addColorStop(.48, colors[1]);
+    g.addColorStop(1, colors[2]);
     ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
-    const sun = ctx.createRadialGradient(w * .82, h * .12, 10, w * .82, h * .12, Math.max(w, h) * .55);
-    sun.addColorStop(0, 'rgba(255,246,196,.55)');
-    sun.addColorStop(.45, 'rgba(255,236,170,.12)');
-    sun.addColorStop(1, 'rgba(255,236,170,0)');
-    ctx.fillStyle = sun; ctx.fillRect(0, 0, w, h);
+
+    const daylight = clamp(SUN_ELEVATION, 0, 1);
+    const sunriseGlow = clamp(1 - Math.abs(HOUR - 6.5) / 2.2, 0, 1);
+    const sunsetGlow = clamp(1 - Math.abs(HOUR - 18.5) / 2.5, 0, 1);
+    const glow = Math.max(daylight * .45, sunriseGlow, sunsetGlow);
+    const sunX = w * (.5 + .43 * Math.cos((HOUR - 12) * Math.PI / 12));
+    const sunY = h * (.43 - .34 * Math.max(0, Math.sin((HOUR - 6) * Math.PI / 12)));
+    if (daylight > .04) {
+      const halo = ctx.createRadialGradient(sunX, sunY, 2, sunX, sunY, Math.max(w, h) * .48);
+      halo.addColorStop(0, `rgba(255,239,177,${.42 * glow})`);
+      halo.addColorStop(.32, `rgba(255,202,134,${.14 * glow})`);
+      halo.addColorStop(1, 'rgba(255,202,134,0)');
+      ctx.fillStyle = halo; ctx.fillRect(0, 0, w, h);
+      const disc = ctx.createRadialGradient(sunX, sunY, 1, sunX, sunY, Math.max(9, w * .014));
+      disc.addColorStop(0, 'rgba(255,255,225,.98)');
+      disc.addColorStop(.42, `rgba(255,239,187,${.9 * daylight})`);
+      disc.addColorStop(1, 'rgba(255,239,187,0)');
+      ctx.fillStyle = disc; ctx.fillRect(sunX - w * .025, sunY - w * .025, w * .05, w * .05);
+    }
+    const stars = clamp(NIGHT / .38, 0, 1);
+    if (stars > .02) {
+      for (let i = 0; i < 72; i++) {
+        const x = hash3(i, 17, 3) * w, y = hash3(i, 29, 8) * h * .58;
+        const twinkle = .55 + .45 * Math.sin(time * 1.7 + i * 4.1);
+        ctx.globalAlpha = stars * twinkle * (.28 + hash3(i, 2, 7) * .55);
+        ctx.fillStyle = '#e9f4ff';
+        ctx.beginPath(); ctx.arc(x, y, .5 + hash3(i, 5, 4) * 1.1, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+    if (NIGHT > .12) {
+      const mx = w * (.5 - .43 * Math.cos((HOUR - 12) * Math.PI / 12));
+      const my = h * (.43 - .30 * Math.max(0, Math.sin((HOUR - 6) * Math.PI / 12)));
+      ctx.save();
+      ctx.shadowColor = 'rgba(206,229,255,.55)'; ctx.shadowBlur = 22;
+      ctx.fillStyle = `rgba(238,242,219,${clamp(NIGHT * 1.9, 0, .9)})`;
+      ctx.beginPath(); ctx.arc(mx, my, Math.max(6, w * .009), 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
     for (const c of clouds) {
       const cx = ((c.x + time * c.sp) % 1.25 - .12) * w;
       const cy = c.y * h;
       const rw = 150 * c.s * (w / 1400), rh = 44 * c.s * (w / 1400);
       if (cy > h * .78) continue;
-      drawCloud(ctx, cx, cy, rw, rh, c.a);
+      drawCloud(ctx, cx, cy, rw, rh, c.a * (1 - NIGHT * .55));
     }
   }
   function drawCloud(ctx, x, y, rw, rh, a) {
@@ -370,13 +419,20 @@ window.KK = window.KK || {};
     const def = defOf(b);
     if (!def) return;
     if (def.kind === 'road' || b.defId === 'road') return;
-    // shadow
-    const sh = diamondPoints(b.x + (b.w - 1) * .5, b.y + (b.h - 1) * .5, b.w + .16, b.h + .16, .02);
-    ctx.save();
-    ctx.translate(2.5, 3.5);
-    poly(ctx, sh, 'rgba(20,55,35,.16)');
-    ctx.restore();
     const art = b.art || artFor(def, b.level);
+    const footprint = diamondPoints(b.x + (b.w - 1) * .5, b.y + (b.h - 1) * .5, b.w + .16, b.h + .16, .02);
+    const sunAngle = (HOUR - 12) * Math.PI / 12;
+    const daylight = clamp(SUN_ELEVATION, 0, 1);
+    const shadowLength = clamp(artHeight(def, b.level) * (.1 + (1 - daylight) * .42), 4, 58);
+    const shadowX = Math.sin(sunAngle) * shadowLength;
+    const shadowY = 2 + shadowLength * .24;
+    const shadowOpacity = .025 + daylight * .12;
+    ctx.save();
+    ctx.translate(shadowX, shadowY);
+    poly(ctx, footprint, `rgba(18,34,43,${shadowOpacity * .35})`);
+    ctx.translate(shadowX * .12, shadowY * .12);
+    poly(ctx, footprint, `rgba(15,35,39,${shadowOpacity})`);
+    ctx.restore();
     switch (art) {
       case 'lot_r': return drawLot(ctx, b, def, '#5ab86c', 'R', time);
       case 'lot_c': return drawLot(ctx, b, def, '#4a9bda', 'C', time);
@@ -410,6 +466,8 @@ window.KK = window.KK || {};
     opts = opts || {};
     NIGHT = opts.night || 0;
     TIME = time;
+    HOUR = Number.isFinite(opts.hour) ? ((opts.hour % 24) + 24) % 24 : 12;
+    SUN_ELEVATION = Math.sin((HOUR - 6) * Math.PI / 12);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, viewW * (opts.dpr || 1), viewH * (opts.dpr || 1));
     const dpr = opts.dpr || 1;

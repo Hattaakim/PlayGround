@@ -140,6 +140,12 @@ window.KK = window.KK || {};
     const h = Math.floor(state.hour || 0) % 24;
     return `${PERIOD_LABELS[state.period] || PERIOD_LABELS.week} ${periodNumber()}, ${pad2(h)}.00`;
   }
+  function dayPhase(hour) {
+    if (hour >= 5 && hour < 10) return 'Pagi';
+    if (hour >= 10 && hour < 15) return 'Siang';
+    if (hour >= 15 && hour < 18) return 'Sore';
+    return 'Malam';
+  }
   function rng(seed) {
     let a = seed >>> 0;
     return function () {
@@ -891,6 +897,7 @@ window.KK = window.KK || {};
     $('#statPower').textContent = `${Math.round(state.powerUse)}/${Math.round(state.powerCap)}`;
     $('#statWater').textContent = `${Math.round(state.waterUse)}/${Math.round(state.waterCap)}`;
     $('#weekLabel').textContent = `${PERIOD_LABELS[state.period] || PERIOD_LABELS.week} ${periodNumber()}`;
+    $('#dayPhase').textContent = dayPhase(state.hour);
     $('#happyValue').textContent = state.happiness + '%';
     $('#happyBar').style.width = state.happiness + '%';
     $('#incomeValue').textContent = (state.income >= 0 ? '+' : '') + money(state.income);
@@ -1754,7 +1761,7 @@ window.KK = window.KK || {};
     }
     const nf = nightFactor(state.hour);
     KK.render.drawWorld(ctx, state, cam, viewW, viewH, cam.zoom, now / 1000, {
-      dpr, night: nf.night, dusk: nf.dusk, ghost: buildGhost(), placements: buildPlacementCandidates(), selected: state.selected
+      dpr, hour: state.hour, night: nf.night, dusk: nf.dusk, ghost: buildGhost(), placements: buildPlacementCandidates(), selected: state.selected
     });
     if (now - uiAcc > 700) { uiAcc = now; updateHUD(); updateMinimap(); }
   }
@@ -1848,7 +1855,7 @@ window.KK = window.KK || {};
     if (heroCanvas.width !== Math.round(hw * hd) || heroCanvas.height !== Math.round(hh * hd)) resizeHero();
     const drift = Math.sin(heroTime * .09) * 14;
     const hc = { x: heroCam.x + drift, y: heroCam.y + Math.cos(heroTime * .07) * 6, zoom: heroCam.zoom };
-    KK.render.drawWorld(heroCtx, heroWorld, hc, hw, hh, heroCam.zoom, heroTime, { dpr: hd, night: 0, dusk: 0 });
+    KK.render.drawWorld(heroCtx, heroWorld, hc, hw, hh, heroCam.zoom, heroTime, { dpr: hd, hour: 16, night: 0, dusk: 0 });
   }
   function startHero() {
     if (!heroRaf) { heroLast = performance.now(); heroRaf = requestAnimationFrame(heroFrame); }
