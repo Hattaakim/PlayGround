@@ -103,6 +103,31 @@ window.KK = window.KK || {};
       w: 1, h: 1, art: 'monument', radius: 4, happy: 4,
       unlockPop: 80, desc: 'Simbol identitas kotamu. Menambah kebanggaan warga.', tag: '+4 😊', previewLevel: 1
     },
+    wind_turbine: {
+      name: 'Turbin Angin', cat: 'utility', kind: 'utility', cost: 680, maint: 7,
+      w: 2, h: 2, art: 'solar', powerSupply: 125, unlockPop: 100,
+      desc: 'Pembangkit angin bersih untuk menambah pasokan listrik kota.', tag: '+125 ⚡', previewLevel: 1
+    },
+    water_pump: {
+      name: 'Pompa Air', cat: 'utility', kind: 'utility', cost: 320, maint: 9,
+      w: 2, h: 2, art: 'watertower', waterSupply: 95, powerUse: 4,
+      unlockPop: 80, desc: 'Memompa air bersih untuk kawasan yang terus berkembang.', tag: '+95 💧', previewLevel: 1
+    },
+    clinic: {
+      name: 'Klinik Warga', cat: 'service', kind: 'service', cost: 360, maint: 12,
+      w: 2, h: 2, art: 'hospital', powerUse: 5, waterUse: 4, jobs: 9, radius: 4, happy: 4,
+      unlockPop: 60, desc: 'Layanan kesehatan dasar yang dekat dengan permukiman.', tag: 'Sehat', previewLevel: 1
+    },
+    library: {
+      name: 'Perpustakaan', cat: 'service', kind: 'service', cost: 390, maint: 11,
+      w: 2, h: 2, art: 'school', powerUse: 4, waterUse: 2, jobs: 8, radius: 5, happy: 4,
+      unlockPop: 80, desc: 'Ruang belajar dan membaca untuk warga segala usia.', tag: 'Belajar', previewLevel: 1
+    },
+    garden: {
+      name: 'Kebun Komunitas', cat: 'fun', kind: 'fun', cost: 95, maint: 2,
+      w: 2, h: 2, art: 'park', radius: 3, happy: 4, waterUse: 2,
+      desc: 'Ruang hijau bersama untuk berkebun dan bersantai.', tag: '+4 😊', previewLevel: 1
+    },
     tree: {
       name: 'Pohon Rindang', cat: 'decor', kind: 'decor', cost: 15, maint: 0,
       w: 1, h: 1, art: 'tree', radius: 1, happy: 0.5, decor: true,
@@ -143,6 +168,15 @@ window.KK = window.KK || {};
     { id: 'pop300', label: 'Capai 300 penduduk', reward: 900, check: s => s.population >= 300, tip: 'Perluas zona dan tingkatkan layanan.' },
     { id: 'stadium', label: 'Bangun Stadion Kota', reward: 1200, check: s => s.hasStadium, tip: 'Stadion terbuka di 350 penduduk.' },
     { id: 'metro', label: 'Jadilah Kota Metropolitan — 1.000 warga', reward: 5000, check: s => s.population >= 1000, tip: 'Terus tumbuh, terus layani warga.' }
+  ];
+
+  const DAILY_CHALLENGES = [
+    { id: 'daily_roads', title: 'Jalan untuk Semua', desc: 'Bangun 3 petak jalan.', target: 3, reward: 120, matches: ['road'] },
+    { id: 'daily_green', title: 'Kota Lebih Hijau', desc: 'Tanam 3 pohon atau bunga.', target: 3, reward: 100, matches: ['tree', 'flowers'] },
+    { id: 'daily_homes', title: 'Rumah Baru', desc: 'Cat 2 zona perumahan.', target: 2, reward: 140, matches: ['zone_r'] },
+    { id: 'daily_utility', title: 'Layanan Dasar', desc: 'Bangun 1 utilitas kota.', target: 1, reward: 160, matches: ['power_plant', 'water_tower', 'solar', 'wind_turbine', 'water_pump'] },
+    { id: 'daily_recreation', title: 'Ruang Bersama', desc: 'Bangun 1 fasilitas rekreasi.', target: 1, reward: 130, matches: ['small_park', 'park', 'plaza', 'fountain', 'ferris', 'stadium', 'monument', 'garden'] },
+    { id: 'daily_service', title: 'Warga Terlayani', desc: 'Bangun 1 layanan warga.', target: 1, reward: 150, matches: ['police', 'fire', 'school', 'hospital', 'clinic', 'library'] }
   ];
 
   const POLICIES = [
@@ -224,6 +258,7 @@ window.KK = window.KK || {};
   KK.DEFS = DEFS;
   KK.CATS = CATS;
   KK.MISSIONS = MISSIONS;
+  KK.DAILY_CHALLENGES = DAILY_CHALLENGES;
   KK.POLICIES = POLICIES;
   KK.EVENTS = EVENTS;
   KK.HOUSE_PALETTES = HOUSE_PALETTES;
