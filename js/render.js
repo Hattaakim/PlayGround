@@ -4,6 +4,7 @@ window.KK = window.KK || {};
   const IX = 32, IY = 16;
   let NIGHT = 0;
   let TIME = 0;
+  let HOUR = 12;
 
   function iso(gx, gy) { return { x: (gx - gy) * IX, y: (gx + gy) * IY }; }
   function isoPts(points) { return points.map(p => iso(p[0], p[1])); }
@@ -84,23 +85,69 @@ window.KK = window.KK || {};
       sp: .0005 + hash3(i, 8, 2) * .0012
     });
   }
-  function drawBackground(ctx, w, h, time) {
+  const skyStops = [
+    { h: 0, top: '#101d3c', mid: '#344967', low: '#66758a' },
+    { h: 4.5, top: '#263454', mid: '#655b79', low: '#bb7c83' },
+    { h: 6, top: '#58658a', mid: '#d18491', low: '#ffc07f' },
+    { h: 8, top: '#82c9df', mid: '#c4e7ed', low: '#f5d6a5' },
+    { h: 12, top: '#69bfdf', mid: '#b8e5ee', low: '#83c9df' },
+    { h: 16, top: '#68b3d1', mid: '#afd9e4', low: '#f0d2a0' },
+    { h: 18.5, top: '#626b91', mid: '#d77f79', low: '#ffac68' },
+    { h: 20.5, top: '#182748', mid: '#3a466c', low: '#765f79' },
+    { h: 24, top: '#101d3c', mid: '#344967', low: '#66758a' }
+  ];
+  function skyAt(hour) {
+    const h = ((hour % 24) + 24) % 24;
+    for (let i = 1; i < skyStops.length; i++) {
+      if (h <= skyStops[i].h) {
+        const a = skyStops[i - 1], b = skyStops[i], t = (h - a.h) / (b.h - a.h);
+        return { top: mixColor(a.top, b.top, t), mid: mixColor(a.mid, b.mid, t), low: mixColor(a.low, b.low, t) };
+      }
+    }
+    return skyStops[0];
+  }
+  function drawBackground(ctx, w, h, time, hour) {
+    const sky = skyAt(hour);
     const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, '#8fd5e8');
-    g.addColorStop(.42, '#bdeaf4');
-    g.addColorStop(1, '#6cb8cc');
+    g.addColorStop(0, sky.top);
+    g.addColorStop(.46, sky.mid);
+    g.addColorStop(1, sky.low);
     ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
-    const sun = ctx.createRadialGradient(w * .82, h * .12, 10, w * .82, h * .12, Math.max(w, h) * .55);
-    sun.addColorStop(0, 'rgba(255,246,196,.55)');
-    sun.addColorStop(.45, 'rgba(255,236,170,.12)');
-    sun.addColorStop(1, 'rgba(255,236,170,0)');
-    ctx.fillStyle = sun; ctx.fillRect(0, 0, w, h);
+
+    const daylight = 1 - NIGHT;
+    const daytime = hour >= 5.5 && hour < 19.5;
+    const progress = daytime ? clamp((hour - 5.5) / 14, 0, 1) : 0;
+    const celestialX = daytime ? w * (.08 + progress * .84) : w * (.82 - (((hour + 6) % 24) / 24) * .68);
+    const arc = daytime ? Math.sin(progress * Math.PI) : Math.sin((((hour + 6) % 24) / 24) * Math.PI);
+    const celestialY = h * (.56 - Math.max(0, arc) * .43);
+    const glowRadius = Math.max(w, h) * .52;
+    const glow = ctx.createRadialGradient(celestialX, celestialY, 4, celestialX, celestialY, glowRadius);
+    glow.addColorStop(0, daytime ? `rgba(255,237,182,${.34 * daylight})` : `rgba(167,196,255,${.2 * NIGHT / .4})`);
+    glow.addColorStop(.4, daytime ? `rgba(255,211,162,${.12 * daylight})` : 'rgba(142,175,255,.04)');
+    glow.addColorStop(1, 'rgba(255,236,170,0)');
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, w, h);
+
+    if (NIGHT > .12) {
+      for (let i = 0; i < 42; i++) {
+        const sx = hash3(i, 17, 3) * w, sy = hash3(i, 9, 7) * h * .58;
+        ctx.globalAlpha = (.22 + hash3(i, 2, 8) * .55) * NIGHT / .4;
+        ctx.fillStyle = '#fff4cf';
+        ctx.beginPath(); ctx.arc(sx, sy, .7 + hash3(i, 4, 2) * 1.1, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      const moonX = w * (.78 - (((hour + 6) % 24) / 24) * .58), moonY = h * .2;
+      ctx.fillStyle = `rgba(255,245,208,${.78 * NIGHT / .4})`;
+      ctx.beginPath(); ctx.arc(moonX, moonY, Math.max(7, Math.min(15, w * .012)), 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.fillStyle = `rgba(255,244,198,${.82 * daylight})`;
+      ctx.beginPath(); ctx.arc(celestialX, celestialY, Math.max(8, Math.min(18, w * .014)), 0, Math.PI * 2); ctx.fill();
+    }
     for (const c of clouds) {
       const cx = ((c.x + time * c.sp) % 1.25 - .12) * w;
       const cy = c.y * h;
       const rw = 150 * c.s * (w / 1400), rh = 44 * c.s * (w / 1400);
       if (cy > h * .78) continue;
-      drawCloud(ctx, cx, cy, rw, rh, c.a);
+      drawCloud(ctx, cx, cy, rw, rh, c.a * (.45 + daylight * .55));
     }
   }
   function drawCloud(ctx, x, y, rw, rh, a) {
@@ -366,17 +413,48 @@ window.KK = window.KK || {};
     };
     return map[def.art] || 60;
   }
+  function drawObjectShadow(ctx, b, def) {
+    const footprint = diamondPoints(b.x + (b.w - 1) * .5, b.y + (b.h - 1) * .5, b.w + .12, b.h + .12, .02);
+    const hour = ((HOUR % 24) + 24) % 24;
+    const phase = clamp((hour - 6) / 12, 0, 1);
+    const sunHeight = Math.max(.12, Math.sin(phase * Math.PI));
+    const nightLight = NIGHT > .02;
+    const shadowLength = clamp(artHeight(def, b.level) * (nightLight ? .16 : .22 + (1 - sunHeight) * .78), 9, 86);
+    const dx = -Math.cos(phase * Math.PI) * shadowLength * .72;
+    const dy = shadowLength * (sunHeight > .7 ? .48 : .22);
+    const opacity = nightLight ? .055 + NIGHT * .12 : .07 + (1 - sunHeight) * .12;
+    const base = footprint.map(p => ({ x: p.x, y: p.y }));
+    const cast = footprint.map(p => ({ x: p.x + dx, y: p.y + dy }));
+    const points = base.concat(cast).sort((a, b) => a.x - b.x || a.y - b.y);
+    const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    const hull = [];
+    for (const p of points) {
+      while (hull.length > 1 && cross(hull[hull.length - 2], hull[hull.length - 1], p) <= 0) hull.pop();
+      hull.push(p);
+    }
+    const lower = hull.length;
+    for (let i = points.length - 2; i >= 0; i--) {
+      const p = points[i];
+      while (hull.length > lower && cross(hull[hull.length - 2], hull[hull.length - 1], p) <= 0) hull.pop();
+      hull.push(p);
+    }
+    hull.pop();
+    ctx.save();
+    poly(ctx, hull, `rgba(18,34,48,${opacity})`);
+    const center = iso(b.x + b.w * .5, b.y + b.h * .5);
+    const contact = ctx.createRadialGradient(center.x, center.y + 2, 1, center.x, center.y + 2, Math.max(12, b.w * 18));
+    contact.addColorStop(0, `rgba(15,35,34,${nightLight ? .13 : .2})`);
+    contact.addColorStop(1, 'rgba(15,35,34,0)');
+    ctx.fillStyle = contact;
+    ctx.beginPath(); ctx.ellipse(center.x, center.y + 2, Math.max(12, b.w * 18), Math.max(5, b.h * 8), 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
   function drawObject(ctx, b, time) {
     const def = defOf(b);
     if (!def) return;
     if (def.kind === 'road' || b.defId === 'road') return;
-    // shadow
-    const sh = diamondPoints(b.x + (b.w - 1) * .5, b.y + (b.h - 1) * .5, b.w + .16, b.h + .16, .02);
-    ctx.save();
-    ctx.translate(2.5, 3.5);
-    poly(ctx, sh, 'rgba(20,55,35,.16)');
-    ctx.restore();
     const art = b.art || artFor(def, b.level);
+    drawObjectShadow(ctx, b, def);
     switch (art) {
       case 'lot_r': return drawLot(ctx, b, def, '#5ab86c', 'R', time);
       case 'lot_c': return drawLot(ctx, b, def, '#4a9bda', 'C', time);
@@ -410,11 +488,12 @@ window.KK = window.KK || {};
     opts = opts || {};
     NIGHT = opts.night || 0;
     TIME = time;
+    HOUR = opts.hour == null ? 12 : opts.hour;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, viewW * (opts.dpr || 1), viewH * (opts.dpr || 1));
     const dpr = opts.dpr || 1;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawBackground(ctx, viewW, viewH, time);
+    drawBackground(ctx, viewW, viewH, time, HOUR);
     ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, dpr * (viewW / 2 - cam.x * zoom), dpr * (viewH / 2 - cam.y * zoom));
     drawPlate(ctx, world.gridSize);
     const left = cam.x - viewW / (2 * zoom) - 90;
@@ -462,13 +541,19 @@ window.KK = window.KK || {};
       if (DEFS[b.defId] && DEFS[b.defId].radius) drawZoneRadius(ctx, b, 'rgba(46,194,126,.55)');
     }
     if (opts.ghost) drawGhost(ctx, opts.ghost, time);
-    // night overlay (screen space)
-    if (NIGHT > .02) {
+    // Atmospheric color grading is screen-space, while every object shadow remains world-space.
+    if (NIGHT > .01 || opts.dusk > .01 || opts.dawn > .01) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = `rgba(14,26,62,${NIGHT * .3})`;
-      ctx.fillRect(0, 0, viewW, viewH);
-      if (opts.dusk) {
-        ctx.fillStyle = `rgba(255,127,58,${opts.dusk * .12})`;
+      if (NIGHT > .01) {
+        ctx.fillStyle = `rgba(14,26,62,${NIGHT * .24})`;
+        ctx.fillRect(0, 0, viewW, viewH);
+      }
+      if (opts.dusk > .01) {
+        ctx.fillStyle = `rgba(255,112,62,${opts.dusk * .1})`;
+        ctx.fillRect(0, 0, viewW, viewH);
+      }
+      if (opts.dawn > .01) {
+        ctx.fillStyle = `rgba(255,190,126,${opts.dawn * .07})`;
         ctx.fillRect(0, 0, viewW, viewH);
       }
     }

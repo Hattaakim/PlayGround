@@ -136,9 +136,17 @@ window.KK = window.KK || {};
     return Math.floor((state.elapsedDays || 0) / (PERIOD_DAYS[state.period] || PERIOD_DAYS.week)) + 1;
   }
   function pad2(n) { return String(Math.floor(n)).padStart(2, '0'); }
+  function timeOfDayLabel(hour) {
+    if (hour < 5 || hour >= 20) return 'Malam';
+    if (hour < 10) return 'Pagi';
+    if (hour < 15) return 'Siang';
+    if (hour < 18) return 'Sore';
+    return 'Senja';
+  }
   function dateText() {
-    const h = Math.floor(state.hour || 0) % 24;
-    return `${PERIOD_LABELS[state.period] || PERIOD_LABELS.week} ${periodNumber()}, ${pad2(h)}.00`;
+    const hour = state.hour || 0;
+    const h = Math.floor(hour) % 24;
+    return `${PERIOD_LABELS[state.period] || PERIOD_LABELS.week} ${periodNumber()}, ${pad2(h)}.00 · ${timeOfDayLabel(hour)}`;
   }
   function rng(seed) {
     let a = seed >>> 0;
@@ -1703,16 +1711,14 @@ window.KK = window.KK || {};
 
   // ---------- render loop ----------
   function nightFactor(h) {
-    let night = 0, dusk = 0;
-    if (h >= 17.5 && h < 20.5) {
-      night = (h - 17.5) / 3 * .38;
-      dusk = clamp(1 - Math.abs(h - 18.8) / 2.2, 0, 1);
-    } else if (h >= 20.5 || h < 5.5) night = .38;
-    else if (h >= 5.5 && h < 7.5) {
-      night = .38 * (1 - (h - 5.5) / 2);
-      dusk = clamp((h - 5.5) / 2 * .65, 0, .65);
-    }
-    return { night, dusk };
+    const smooth = (a, b, x) => {
+      const t = clamp((x - a) / (b - a), 0, 1);
+      return t * t * (3 - 2 * t);
+    };
+    const night = .4 * (1 - smooth(4.5, 7.5, h)) + .4 * smooth(17, 20.5, h);
+    const dusk = clamp(1 - Math.abs(h - 18.5) / 2.6, 0, 1);
+    const dawn = clamp(1 - Math.abs(h - 6.1) / 2.4, 0, 1);
+    return { night, dusk, dawn };
   }
   function buildGhost() {
     if (!state || !state.tool || !hoverTile || state.modalPause) return null;
@@ -1754,7 +1760,7 @@ window.KK = window.KK || {};
     }
     const nf = nightFactor(state.hour);
     KK.render.drawWorld(ctx, state, cam, viewW, viewH, cam.zoom, now / 1000, {
-      dpr, night: nf.night, dusk: nf.dusk, ghost: buildGhost(), placements: buildPlacementCandidates(), selected: state.selected
+      dpr, hour: state.hour, night: nf.night, dusk: nf.dusk, dawn: nf.dawn, ghost: buildGhost(), placements: buildPlacementCandidates(), selected: state.selected
     });
     if (now - uiAcc > 700) { uiAcc = now; updateHUD(); updateMinimap(); }
   }
