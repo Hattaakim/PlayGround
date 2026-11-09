@@ -410,6 +410,7 @@ window.KK = window.KK || {};
     if (def.kind === 'zone-i') return [0, 68, 80, 92][Math.min(lv, 3)];
     const map = {
       powerplant: 112, watertower: 78, solar: 46, police: 54, fire: 60, school: 86, hospital: 96,
+      busterminal: 58, markethall: 64, recycling: 58, museum: 76, airport: 112,
       smallpark: 54, park: 74, plaza: 64, fountain: 58, ferris: 126, stadium: 100, monument: 96,
       tree: 58, flowers: 44, streetlamp: 54, rock: 36, lot_r: 34, lot_c: 34, lot_i: 34
     };
@@ -447,6 +448,11 @@ window.KK = window.KK || {};
       case 'fire': return drawFire(ctx, b, time);
       case 'school': return drawSchool(ctx, b, time);
       case 'hospital': return drawHospital(ctx, b, time);
+      case 'busterminal': return drawBusTerminal(ctx, b, time);
+      case 'markethall': return drawMarketHall(ctx, b, time);
+      case 'recycling': return drawRecyclingCenter(ctx, b, time);
+      case 'museum': return drawMuseum(ctx, b, time);
+      case 'airport': return drawAirport(ctx, b, time);
       case 'smallpark': return drawSmallPark(ctx, b, time);
       case 'park': return drawPark(ctx, b, time);
       case 'plaza': return drawPlaza(ctx, b, time);
@@ -1135,6 +1141,130 @@ window.KK = window.KK || {};
     ellipse(ctx, hp.x, hp.y, 9, 4.5, '#cfd2c9', '#f1f3ec', 1);
     ctx.fillStyle = '#f1f3ec'; ctx.font = '700 5px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('H', hp.x, hp.y + 2);
     drawTreeAt(ctx, b.x + 1.83, b.y + 1.4, .7, 1, time);
+  }
+
+  // ---------- civic buildings and transport ----------
+  function drawBusTerminal(ctx, b, time) {
+    basePad(ctx, b, '#b9b8aa', '#d2cdbd');
+    // bus bays and marked forecourt
+    poly(ctx, diamondPoints(b.x + .12, b.y + 1.15, 1.76, .68, .06), '#777f7d');
+    for (let i = 0; i < 3; i++) {
+      const p = iso(b.x + .28 + i * .48, b.y + 1.23);
+      line(ctx, { x: p.x - 3, y: p.y - 1 }, { x: p.x + 3, y: p.y + 1 }, '#e6d994', 1);
+    }
+    const g = boxGeo(b.x + .22, b.y + .2, 1.52, .78, .04);
+    drawBox(ctx, b.x + .22, b.y + .2, 1.52, .78, 22, { inset: .04, wall: '#e8e4d7', left: '#c9c7bc', right: '#aaa99f', top: '#f5f1e5' });
+    drawWindows(ctx, g.L, g.B, 22, 1, 5, { top: 5, bottom: 5, winW: 4, winH: 7, color: '#91cbd8' });
+    roofLip(ctx, g, 22, '#577b83');
+    // broad canopy over the terminal entrance
+    poly(ctx, [{ x: g.L.x - 3, y: g.L.y - 22 }, { x: g.B.x + 3, y: g.B.y - 22 }, { x: g.B.x + 3, y: g.B.y - 27 }, { x: g.L.x - 3, y: g.L.y - 27 }], '#287f87');
+    const sign = iso(b.x + 1.05, b.y + .28);
+    poly(ctx, [{ x: sign.x - 10, y: sign.y - 33 }, { x: sign.x + 10, y: sign.y - 28 }, { x: sign.x + 10, y: sign.y - 23 }, { x: sign.x - 10, y: sign.y - 28 }], '#f4f2e7');
+    ctx.fillStyle = '#287f87'; ctx.font = '700 5px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('BUS', sign.x, sign.y - 26);
+    // parked city bus
+    const bus = iso(b.x + .45, b.y + 1.62);
+    poly(ctx, [{ x: bus.x - 10, y: bus.y - 2 }, { x: bus.x + 8, y: bus.y - 4 }, { x: bus.x + 11, y: bus.y - 1 }, { x: bus.x + 10, y: bus.y + 3 }, { x: bus.x - 9, y: bus.y + 4 }], '#258f9a', '#17636d', .8);
+    poly(ctx, [{ x: bus.x - 6, y: bus.y - 4 }, { x: bus.x + 6, y: bus.y - 5 }, { x: bus.x + 7, y: bus.y - 2 }, { x: bus.x - 6, y: bus.y - 1 }], '#b9e2e4');
+    ctx.fillStyle = '#28363a'; ctx.beginPath(); ctx.arc(bus.x - 5, bus.y + 3, 1.8, 0, 7); ctx.arc(bus.x + 6, bus.y + 1, 1.8, 0, 7); ctx.fill();
+  }
+
+  function drawMarketHall(ctx, b, time) {
+    basePad(ctx, b, '#c5b89f', '#d8ccb4');
+    // colorful covered stalls around an open aisle
+    poly(ctx, diamondPoints(b.x + .12, b.y + .12, 1.76, 1.72, .07), '#b79b70');
+    const g = boxGeo(b.x + .2, b.y + .18, 1.6, 1.45, .05);
+    drawBox(ctx, b.x + .2, b.y + .18, 1.6, 1.45, 19, { inset: .05, wall: '#eadfc7', left: '#cdbd9f', right: '#b5a17e', top: '#f4ead4' });
+    // striped roof awning and exposed market counters
+    poly(ctx, [{ x: g.T.x, y: g.T.y - 19 }, { x: g.R.x, y: g.R.y - 19 }, { x: g.R.x, y: g.R.y - 25 }, { x: g.T.x, y: g.T.y - 25 }], '#c55245');
+    for (let i = 0; i < 5; i++) {
+      const t = (i + .5) / 5;
+      const x = lerp(g.T.x, g.R.x, t), y = lerp(g.T.y, g.R.y, t);
+      poly(ctx, [{ x, y: y - 19 }, { x: x + 5, y: y - 19 }, { x: x + 5, y: y - 25 }, { x, y: y - 25 }], i % 2 ? '#f5e8cc' : '#d86550');
+    }
+    roofLip(ctx, g, 19, '#836a4d');
+    // stalls, produce baskets and entrance sign
+    for (let i = 0; i < 4; i++) {
+      const p = iso(b.x + .36 + (i % 2) * 1.05, b.y + .78 + Math.floor(i / 2) * .46);
+      ctx.fillStyle = i % 2 ? '#9c6246' : '#6e7950';
+      poly(ctx, [{ x: p.x - 5, y: p.y }, { x: p.x, y: p.y - 2.5 }, { x: p.x + 5, y: p.y }, { x: p.x, y: p.y + 2.5 }], ctx.fillStyle);
+      for (let j = 0; j < 3; j++) { ctx.fillStyle = ['#e7b642', '#d95e48', '#68a85c'][j]; ctx.beginPath(); ctx.arc(p.x - 3 + j * 3, p.y - 3, 1.4, 0, 7); ctx.fill(); }
+    }
+    const s = iso(b.x + 1.15, b.y + .36);
+    poly(ctx, [{ x: s.x - 10, y: s.y - 29 }, { x: s.x + 10, y: s.y - 24 }, { x: s.x + 10, y: s.y - 19 }, { x: s.x - 10, y: s.y - 24 }], '#f3e5c7');
+    ctx.fillStyle = '#a64c38'; ctx.font = '700 5px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('PASAR', s.x, s.y - 22);
+  }
+
+  function drawRecyclingCenter(ctx, b, time) {
+    basePad(ctx, b, '#b8bcae', '#d0d1c5');
+    // sorting shed
+    const g = boxGeo(b.x + .16, b.y + .2, 1.36, 1.12, .05);
+    drawBox(ctx, b.x + .16, b.y + .2, 1.36, 1.12, 25, { inset: .05, wall: '#d9e0d1', left: '#b9c9b5', right: '#96aa9a', top: '#edf0e3' });
+    drawWindows(ctx, g.L, g.B, 25, 1, 3, { top: 5, bottom: 7, winW: 4, winH: 5, color: '#8fc4c1' });
+    roofLip(ctx, g, 25, '#607d70');
+    // green recycling mark on front wall
+    const p = iso(b.x + .85, b.y + .35);
+    ctx.fillStyle = '#31866c'; ctx.font = '700 12px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('↻', p.x, p.y - 15);
+    // sorting bins and compact delivery truck
+    for (let i = 0; i < 3; i++) {
+      const q = iso(b.x + .36 + i * .38, b.y + 1.56);
+      ctx.fillStyle = ['#428a69', '#e3b84e', '#4b83a6'][i];
+      poly(ctx, [{ x: q.x - 4, y: q.y - 7 }, { x: q.x + 3, y: q.y - 5 }, { x: q.x + 3, y: q.y + 1 }, { x: q.x - 4, y: q.y - 1 }], ctx.fillStyle);
+      line(ctx, { x: q.x - 4, y: q.y - 7 }, { x: q.x + 3, y: q.y - 5 }, '#e7e8d9', .8);
+    }
+    const t = iso(b.x + 1.55, b.y + 1.55);
+    poly(ctx, [{ x: t.x - 7, y: t.y - 4 }, { x: t.x + 4, y: t.y - 3 }, { x: t.x + 8, y: t.y }, { x: t.x + 7, y: t.y + 3 }, { x: t.x - 7, y: t.y + 2 }], '#e8eee5', '#64816f', .7);
+    ctx.fillStyle = '#28363a'; ctx.beginPath(); ctx.arc(t.x - 3, t.y + 2, 1.5, 0, 7); ctx.arc(t.x + 5, t.y + 2, 1.5, 0, 7); ctx.fill();
+  }
+
+  function drawMuseum(ctx, b, time) {
+    basePad(ctx, b, '#c7bfae', '#d8d1c2');
+    // civic steps and classical facade
+    poly(ctx, diamondPoints(b.x + .15, b.y + 1.15, 1.7, .68, .06), '#b8b4a8');
+    const g = boxGeo(b.x + .25, b.y + .22, 1.5, 1.05, .04);
+    drawBox(ctx, b.x + .25, b.y + .22, 1.5, 1.05, 29, { inset: .04, wall: '#eee7d6', left: '#d0c4aa', right: '#b7a989', top: '#f7f1e4' });
+    // pediment
+    poly(ctx, [{ x: g.T.x - 2, y: g.T.y - 29 }, { x: g.R.x + 2, y: g.R.y - 29 }, { x: (g.T.x + g.R.x) / 2, y: (g.T.y + g.R.y) / 2 - 41 }], '#9b6949', '#80583f', 1);
+    drawWindows(ctx, g.L, g.B, 29, 1, 4, { top: 6, bottom: 8, winW: 4, winH: 8, color: '#95bdc5' });
+    drawDoor(ctx, g, 29, '#76543f', { w: 8, h: 13, frac: .5 });
+    roofLip(ctx, g, 29, '#9b6949');
+    // mounted museum plaque and small sculpture
+    const s = iso(b.x + 1.08, b.y + .36);
+    poly(ctx, [{ x: s.x - 10, y: s.y - 36 }, { x: s.x + 10, y: s.y - 31 }, { x: s.x + 10, y: s.y - 24 }, { x: s.x - 10, y: s.y - 29 }], '#f6f0df');
+    ctx.fillStyle = '#8b6344'; ctx.font = '700 5px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('MUSEUM', s.x, s.y - 28);
+    const statue = iso(b.x + 1.65, b.y + 1.57);
+    ctx.fillStyle = '#b58c58'; ctx.fillRect(statue.x - 3, statue.y - 5, 6, 4);
+    ctx.beginPath(); ctx.arc(statue.x, statue.y - 7, 2, 0, 7); ctx.fill();
+  }
+
+  function drawAirport(ctx, b, time) {
+    basePad(ctx, b, '#b9b8aa', '#d0cebf');
+    // runway set diagonally across the wide airport parcel
+    const runway = [iso(b.x + .18, b.y + 2.42), iso(b.x + 3.72, b.y + .62), iso(b.x + 3.82, b.y + .94), iso(b.x + .28, b.y + 2.74)];
+    poly(ctx, runway, '#424b50', '#687176', 1);
+    for (let i = 0; i < 9; i++) {
+      const t = .08 + i * .105;
+      const a = { x: lerp(runway[0].x, runway[1].x, t), y: lerp(runway[0].y, runway[1].y, t) };
+      const c = { x: lerp(runway[3].x, runway[2].x, t), y: lerp(runway[3].y, runway[2].y, t) };
+      line(ctx, a, c, '#e8e4cf', 1.3);
+    }
+    // terminal concourse with glass frontage
+    const g = boxGeo(b.x + 1.12, b.y + .35, 1.72, 1.05, .04);
+    drawBox(ctx, b.x + 1.12, b.y + .35, 1.72, 1.05, 40, { inset: .04, wall: '#e4e6dc', left: '#c6d0cc', right: '#aab8b8', top: '#f4f4e9' });
+    drawWindows(ctx, g.L, g.B, 40, 2, 5, { top: 8, bottom: 7, winW: 4, winH: 12, color: '#77b9cf' });
+    roofLip(ctx, g, 40, '#496f7d');
+    // control tower
+    const tower = boxGeo(b.x + 2.72, b.y + .25, .48, .42, .04);
+    drawBox(ctx, b.x + 2.72, b.y + .25, .48, .42, 67, { inset: .04, wall: '#d6ddd7', left: '#b7c5c1', right: '#9eafae', top: '#eff3e8' });
+    const cab = boxGeo(b.x + 2.62, b.y + .16, .68, .58, .02);
+    drawBox(ctx, b.x + 2.62, b.y + .16, .68, .58, 68, { inset: .02, wall: '#6e8790', left: '#526b76', right: '#405b67', top: '#a9d8df' });
+    // passenger jet on the apron
+    const plane = iso(b.x + 1.25, b.y + 2.05);
+    ctx.save(); ctx.translate(plane.x, plane.y); ctx.rotate(-.43);
+    poly(ctx, [{ x: -14, y: -2 }, { x: -5, y: -2 }, { x: -2, y: -10 }, { x: 1, y: -10 }, { x: 0, y: -2 }, { x: 12, y: -1 }, { x: 16, y: 1 }, { x: 0, y: 2 }, { x: 1, y: 8 }, { x: -2, y: 8 }, { x: -5, y: 2 }, { x: -14, y: 2 }], '#f7f4e8', '#788a8c', .8);
+    line(ctx, { x: -9, y: 0 }, { x: 10, y: 0 }, '#4a9ab2', 1.2);
+    ctx.restore();
+    // red beacon makes the tower legible at miniature scale
+    if (NIGHT > .2) { ctx.fillStyle = '#ff655b'; ctx.beginPath(); ctx.arc(tower.T.x, tower.T.y - 69, 2, 0, 7); ctx.fill(); }
   }
 
   // ---------- recreation ----------

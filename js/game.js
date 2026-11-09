@@ -165,7 +165,7 @@ window.KK = window.KK || {};
       uid: 0, population: 0, jobs: 0, commercialJobs: 0, industrialJobs: 0, workers: 0,
       happiness: 60, moodBoost: 0, maxPop: 0, powerCap: 0, powerUse: 0, waterCap: 0, waterUse: 0,
       income: 0, expense: 0, net: 0, roadCount: 0, zoneCount: 0,
-      hasPower: false, hasWater: false, hasPark: false, hasSchool: false, hasStadium: false,
+      hasPower: false, hasWater: false, hasPark: false, hasSchool: false, hasStadium: false, hasAirport: false,
       demandR: 18, demandC: 8, demandI: 6,
       missionsDone: {}, dailyChallenges: null, won: false, unlocked: {}, eventTimer: 48, warned: {},
       stats: { houses: 0, shops: 0, factories: 0 }, selected: null, started: true,
@@ -537,7 +537,7 @@ window.KK = window.KK || {};
     let pop = 0, workers = 0, jobs = 0, cJobs = 0, iJobs = 0;
     let powerUse = 0, powerCap = 0, waterUse = 0, waterCap = 0, expense = 0;
     let roadCount = 0, zoneCount = 0, houses = 0, shops = 0, factories = 0;
-    let hasPower = false, hasWater = false, hasPark = false, hasSchool = false, hasStadium = false;
+    let hasPower = false, hasWater = false, hasPark = false, hasSchool = false, hasStadium = false, hasAirport = false;
     const houseList = [], amenities = [], polluters = [];
     for (const b of state.buildings) {
       const d = defOf(b); if (!d) continue;
@@ -578,6 +578,7 @@ window.KK = window.KK || {};
         if (artOr(defOf(b), b) === 'park' || artOr(defOf(b), b) === 'smallpark') hasPark = true;
         if (artOr(defOf(b), b) === 'school') hasSchool = true;
         if (artOr(defOf(b), b) === 'stadium') hasStadium = true;
+        if (b.defId === 'airport') hasAirport = true;
       }
       if (d.happy && d.radius) amenities.push(b);
       if (b.defId === 'solar') hasPower = true;
@@ -641,6 +642,7 @@ window.KK = window.KK || {};
     state.hasPark = hasPark;
     state.hasSchool = hasSchool;
     state.hasStadium = hasStadium;
+    state.hasAirport = hasAirport;
     state.houses = houses; state.shops = shops; state.factories = factories;
     state.demandR = clamp(16 + jobs * 1.25 - pop * .38 + (state.happiness < 48 ? -8 : 0), 0, 100);
     state.demandC = clamp(8 + pop * .34 - cJobs * .85, 0, 100);
@@ -1019,11 +1021,28 @@ window.KK = window.KK || {};
     else if (state.jobs < state.workers * .75 && state.population > 20) text = 'Banyak warga menganggur. Cat zona komersial atau industri untuk lapangan kerja.';
     else if (state.happiness < 50) text = 'Warga gelisah. Tambah taman, sekolah, atau polisi—dan jangan naikkan pajak terlalu tinggi.';
     else if (!state.hasPark && state.population > 30) text = 'Kota butuh tempat bersantai. Taman Kota menaikkan kebahagiaan dan mempercepat pertumbuhan.';
-    else if (!state.hasSchool && state.maxPop >= 30) text = 'Sekolah akan terbuka di 50 warga. Siapkan lahan dan tabungan untuk mendidik generasi berikutnya.';
+    else if (!state.hasSchool && state.maxPop >= 30 && state.maxPop < 50) text = 'Sekolah terbuka pada 50 warga. Siapkan lahan dan tabungan untuk mendidik generasi berikutnya.';
+    else if (!state.hasSchool && state.maxPop >= 50) text = state.money >= DEFS.school.cost
+      ? 'Sekolah Dasar sudah terbuka dan kas mencukupi. Bangun di dekat permukiman untuk mendukung pertumbuhan rumah.'
+      : `Sekolah Dasar terbuka, tetapi membutuhkan ${money(DEFS.school.cost)}. Tambah pemasukan sebelum membangunnya.`;
     else if (state.money < 300) text = 'Kas menipis. Selesaikan misi atau bangun zona komersial untuk menambah pemasukan.';
+    else if (state.maxPop >= 500 && !state.hasAirport && state.money >= DEFS.airport.cost) text = 'Bandara Kota siap dibangun! Pastikan tersedia lahan luas di tepi jalan serta kapasitas listrik dan air yang cukup.';
+    else if (state.maxPop >= 500 && !state.hasAirport) text = `Bandara Kota terbuka pada 500 warga dan membutuhkan ${money(DEFS.airport.cost)}. Sisihkan dana untuk membangunnya.`;
     else {
-      const n = KK.MISSIONS.find(m => !state.missionsDone[m.id]);
-      text = n ? `Misi berikutnya: ${n.label}. ${n.tip}` : 'Kota berjalan baik. Teruslah berkembang hingga menjadi metropolis!';
+      const progressionTips = [
+        { id: 'market_hall', pop: 50, text: 'Pasar Rakyat sudah terbuka. Bangun dekat permukiman untuk menambah lapangan kerja dan layanan warga.' },
+        { id: 'bus_terminal', pop: 80, text: 'Terminal Bus sudah terbuka. Tempatkan di tepi jalan untuk menambah layanan dan pekerjaan.' },
+        { id: 'recycling_center', pop: 100, text: 'Pusat Daur Ulang sudah terbuka. Siapkan lahan di tepi jalan untuk menambah pekerjaan kota.' },
+        { id: 'museum', pop: 180, text: 'Museum Kota sudah terbuka. Bangun dekat kawasan hunian untuk kebahagiaan dan pekerjaan.' }
+      ];
+      const next = progressionTips.find(tip => state.maxPop >= tip.pop && !state.buildings.some(b => b.defId === tip.id));
+      if (next) {
+        const def = DEFS[next.id];
+        text = state.money >= def.cost ? next.text : `${next.text} Sisihkan ${money(def.cost)}; kas saat ini ${money(state.money)}.`;
+      } else {
+        const n = KK.MISSIONS.find(m => !state.missionsDone[m.id]);
+        text = n ? `Misi berikutnya: ${n.label}. ${n.tip}` : 'Kota berjalan baik. Teruslah berkembang hingga menjadi metropolis!';
+      }
     }
     $('#advisorText').textContent = text;
   }

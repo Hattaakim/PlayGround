@@ -128,6 +128,31 @@ window.KK = window.KK || {};
       w: 2, h: 2, art: 'park', radius: 3, happy: 4, waterUse: 2,
       desc: 'Ruang hijau bersama untuk berkebun dan bersantai.', tag: '+4 😊', previewLevel: 1
     },
+    bus_terminal: {
+      name: 'Terminal Bus', cat: 'service', kind: 'service', cost: 480, maint: 14,
+      w: 2, h: 2, art: 'busterminal', powerUse: 6, waterUse: 2, jobs: 14, radius: 4, happy: 3,
+      unlockPop: 80, desc: 'Hubungkan kawasan kota dengan layanan bus yang nyaman.', tag: 'Transit', previewLevel: 1
+    },
+    market_hall: {
+      name: 'Pasar Rakyat', cat: 'service', kind: 'service', cost: 420, maint: 12,
+      w: 2, h: 2, art: 'markethall', powerUse: 5, waterUse: 3, jobs: 18, radius: 4, happy: 4,
+      unlockPop: 50, desc: 'Pasar beratap untuk pedagang lokal dan kebutuhan harian warga.', tag: 'Niaga', previewLevel: 1
+    },
+    recycling_center: {
+      name: 'Pusat Daur Ulang', cat: 'utility', kind: 'utility', cost: 620, maint: 12,
+      w: 2, h: 2, art: 'recycling', powerUse: 5, waterUse: 2, jobs: 12,
+      unlockPop: 100, desc: 'Mengolah kembali sampah kota dan membuka lapangan kerja.', tag: 'Hijau', previewLevel: 1
+    },
+    museum: {
+      name: 'Museum Kota', cat: 'service', kind: 'service', cost: 850, maint: 18,
+      w: 2, h: 2, art: 'museum', powerUse: 8, waterUse: 3, jobs: 16, radius: 7, happy: 8,
+      unlockPop: 180, desc: 'Ruang budaya yang merawat sejarah dan kebanggaan kota.', tag: 'Budaya', previewLevel: 1
+    },
+    airport: {
+      name: 'Bandara Kota', cat: 'service', kind: 'service', cost: 3200, maint: 48,
+      w: 4, h: 3, art: 'airport', powerUse: 18, waterUse: 8, jobs: 60, radius: 8, happy: 7,
+      unlockPop: 500, desc: 'Bandara regional yang menghubungkan kotamu dengan dunia.', tag: 'Gerbang kota', previewLevel: 1
+    },
     tree: {
       name: 'Pohon Rindang', cat: 'decor', kind: 'decor', cost: 15, maint: 0,
       w: 1, h: 1, art: 'tree', radius: 1, happy: 0.5, decor: true,
@@ -152,7 +177,7 @@ window.KK = window.KK || {};
   const CATS = [
     { id: 'infra', name: 'Jalan & Zona', icon: 'road', eyebrow: 'FONDASI KOTA', blurb: 'Bangun jalan, lalu cat zona. Bangunan akan tumbuh sendiri jika warganya betah.' },
     { id: 'utility', name: 'Utilitas', icon: 'bolt', eyebrow: 'DAYA KOTA', blurb: 'Listrik dan air adalah nyawa kota. Tanpa keduanya, tak ada yang tumbuh.' },
-    { id: 'service', name: 'Layanan', icon: 'heart', eyebrow: 'WARGA TERLAYANI', blurb: 'Sekolah, rumah sakit, polisi, dan damkar menjaga warga tetap aman dan bahagia.' },
+    { id: 'service', name: 'Layanan', icon: 'heart', eyebrow: 'WARGA TERLAYANI', blurb: 'Sekolah, rumah sakit, terminal, pasar, dan fasilitas publik menjaga kota tetap hidup.' },
     { id: 'fun', name: 'Rekreasi', icon: 'ferris', eyebrow: 'HIDUP LEBIH SERU', blurb: 'Taman, alun-alun, kincir ria. Kota yang menyenangkan menarik lebih banyak warga.' },
     { id: 'decor', name: 'Dekorasi', icon: 'tree', eyebrow: 'DETAIL KECIL', blurb: 'Pohon, bunga, dan lampu jalan untuk kota yang cantik dan nyaman.' }
   ];
