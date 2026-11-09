@@ -123,22 +123,26 @@ window.KK = window.KK || {};
     if (pop >= 30) return 'Walikota Pemula';
     return 'Walikota Baru';
   }
-  const PERIOD_DAYS = { day: 1, week: 7, month: 30 };
-  const PERIOD_LABELS = { day: 'Hari', week: 'Minggu', month: 'Bulan' };
-  const BASE_TICK_SECONDS = 12;
-  function periodScale() { return (PERIOD_DAYS[state.period] || PERIOD_DAYS.week) / 7; }
-  function tickInterval() {
-    const days = PERIOD_DAYS[state?.period] || PERIOD_DAYS.week;
-    // Coarser periods take a little longer, making each calendar jump readable.
-    return BASE_TICK_SECONDS * (1 + .2 * Math.log2(days));
-  }
-  function periodNumber() {
-    return Math.floor((state.elapsedDays || 0) / (PERIOD_DAYS[state.period] || PERIOD_DAYS.week)) + 1;
-  }
+  const GAME_EPOCH = Date.UTC(2024, 0, 1);
+  const MONTH_NAMES = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const HOURS_PER_ECONOMIC_STEP = 168; // One legacy economy step represents one in-game week.
+  const SECONDS_PER_GAME_HOUR = 3600; // 1× advances one game hour per real hour.
+  function tickInterval() { return SECONDS_PER_GAME_HOUR; }
   function pad2(n) { return String(Math.floor(n)).padStart(2, '0'); }
   function dateText() {
-    const h = Math.floor(state.hour || 0) % 24;
-    return `${PERIOD_LABELS[state.period] || PERIOD_LABELS.week} ${periodNumber()}, ${pad2(h)}.00`;
+    const elapsedDays = Math.max(0, Math.floor(state.elapsedDays || 0));
+    const date = new Date(GAME_EPOCH + elapsedDays * 86400000);
+    const totalMinutes = Math.floor((state.hour || 0) * 60) % 1440;
+    return `${pad2(totalMinutes / 60)}:${pad2(totalMinutes % 60)} ${date.getUTCDate()} ${MONTH_NAMES[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
+  }
+  function advanceClock(realSeconds) {
+    const totalHours = state.hour + realSeconds / SECONDS_PER_GAME_HOUR;
+    const elapsedDays = Math.floor(totalHours / 24);
+    state.hour = totalHours % 24;
+    if (elapsedDays > 0) {
+      state.elapsedDays += elapsedDays;
+      ensureDailyChallenges();
+    }
   }
   function dayPhase(hour) {
     if (hour >= 5 && hour < 10) return 'Pagi';
@@ -160,7 +164,7 @@ window.KK = window.KK || {};
   function blankState(name) {
     const s = {
       version: 2, cityName: name || 'Kota Kita', money: 6000, tick: 0, hour: 8.6,
-      period: 'week', elapsedDays: 0, gridSize: GRID,
+      elapsedDays: 0, gridSize: GRID,
       taxRate: 9, policies: {}, grid: [], buildings: [], cars: [],
       uid: 0, population: 0, jobs: 0, commercialJobs: 0, industrialJobs: 0, workers: 0,
       happiness: 60, moodBoost: 0, maxPop: 0, powerCap: 0, powerUse: 0, waterCap: 0, waterUse: 0,
@@ -661,9 +665,8 @@ window.KK = window.KK || {};
   function simulateTick() {
     if (!state) return;
     state.tick++;
-    const scale = periodScale();
-    state.elapsedDays = (state.elapsedDays || 0) + PERIOD_DAYS[state.period];
-    state.hour = (state.hour + .24 * scale) % 24;
+    const scale = 1 / HOURS_PER_ECONOMIC_STEP;
+    advanceClock(SECONDS_PER_GAME_HOUR);
     state.moodBoost *= Math.pow(.966, scale);
     if (Math.abs(state.moodBoost) < .05) state.moodBoost = 0;
     recalc();
@@ -898,7 +901,7 @@ window.KK = window.KK || {};
     $('#statHappy').textContent = state.happiness;
     $('#statPower').textContent = `${Math.round(state.powerUse)}/${Math.round(state.powerCap)}`;
     $('#statWater').textContent = `${Math.round(state.waterUse)}/${Math.round(state.waterCap)}`;
-    $('#weekLabel').textContent = `${PERIOD_LABELS[state.period] || PERIOD_LABELS.week} ${periodNumber()}`;
+    $('#weekLabel').textContent = dateText();
     $('#dayPhase').textContent = dayPhase(state.hour);
     $('#happyValue').textContent = state.happiness + '%';
     $('#happyBar').style.width = state.happiness + '%';
