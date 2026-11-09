@@ -411,6 +411,7 @@ window.KK = window.KK || {};
     const map = {
       powerplant: 112, watertower: 78, solar: 46, police: 54, fire: 60, school: 86, hospital: 96,
       smallpark: 54, park: 74, plaza: 64, fountain: 58, ferris: 126, stadium: 100, monument: 96,
+      museum: 78, busterminal: 64, airport: 88,
       tree: 58, flowers: 44, streetlamp: 54, rock: 36, lot_r: 34, lot_c: 34, lot_i: 34
     };
     return map[def.art] || 60;
@@ -453,6 +454,9 @@ window.KK = window.KK || {};
       case 'fountain': return drawFountain(ctx, b, time);
       case 'ferris': return drawFerris(ctx, b, time);
       case 'stadium': return drawStadium(ctx, b, time);
+      case 'museum': return drawMuseum(ctx, b, time);
+      case 'busterminal': return drawBusTerminal(ctx, b, time);
+      case 'airport': return drawAirport(ctx, b, time);
       case 'monument': return drawMonument(ctx, b, time);
       case 'tree': return drawTree(ctx, b, def, time);
       case 'flowers': return drawFlowers(ctx, b, time);
@@ -1384,6 +1388,93 @@ window.KK = window.KK || {};
     ctx.fillStyle = '#f0e8d5'; ctx.fillRect(e.x - 18, e.y - 8, 36, 8);
     ctx.fillStyle = '#3f6f8a'; ctx.fillRect(e.x - 8, e.y - 7, 16, 7);
     if (NIGHT > .25) { ctx.globalAlpha = .35; ctx.fillStyle = '#ffe9a0'; ctx.beginPath(); ctx.arc(e.x, e.y - 8, 26, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+  }
+
+  function drawMuseum(ctx, b, time) {
+    basePad(ctx, b, '#c9c1ae', '#ded6c4');
+    // Broad civic steps and a classical gallery.
+    poly(ctx, diamondPoints(b.x + .18, b.y + .32, 1.65, 1.35, .02), '#b8af9d');
+    const x = b.x + .2, y = b.y + .18, w = 1.6, h = .95;
+    const g = boxGeo(x, y, w, h, .04);
+    drawBox(ctx, x, y, w, h, 29, { inset: .04, wall: '#e8dfcb', left: '#cfc2a8', right: '#b5a688', top: '#f5ecd9' });
+    // Pillars and the blue museum frieze.
+    for (let i = 0; i < 4; i++) {
+      const p = iso(x + .22 + i * .38, y + .88);
+      line(ctx, { x: p.x, y: p.y - 2 }, { x: p.x, y: p.y - 26 }, '#f7f0df', 3.2);
+      line(ctx, { x: p.x + 1.2, y: p.y - 2 }, { x: p.x + 1.2, y: p.y - 26 }, '#b8aa91', .8);
+    }
+    poly(ctx, [{ x: g.L.x, y: g.L.y - 29 }, { x: g.B.x, y: g.B.y - 29 }, { x: g.B.x, y: g.B.y - 34 }, { x: g.L.x, y: g.L.y - 34 }], '#3e7890');
+    poly(ctx, [{ x: g.T.x, y: g.T.y - 29 }, { x: g.R.x, y: g.R.y - 29 }, { x: g.R.x, y: g.R.y - 34 }, { x: g.T.x, y: g.T.y - 34 }], '#548fa2');
+    poly(ctx, [{ x: g.T.x, y: g.T.y - 34 }, { x: g.R.x, y: g.R.y - 34 }, { x: (g.T.x + g.R.x) * .5, y: (g.T.y + g.R.y) * .5 - 42 }], '#c5b89f');
+    const sign = iso(b.x + 1, b.y + .23);
+    ctx.fillStyle = '#f2e7ce'; ctx.font = '700 5px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('MUSEUM', sign.x, sign.y - 34);
+    drawDoor(ctx, g, 29, '#765d48', { w: 6, h: 12, frac: .5 });
+    // A small sculpture in the front court.
+    const statue = iso(b.x + 1, b.y + 1.62);
+    ellipse(ctx, statue.x, statue.y + 1, 8, 3.5, '#a99d87');
+    line(ctx, { x: statue.x, y: statue.y }, { x: statue.x, y: statue.y - 11 }, '#927c5d', 2.2);
+    ellipse(ctx, statue.x, statue.y - 13, 3, 3.5, '#d1b879');
+  }
+
+  function drawBusTerminal(ctx, b, time) {
+    basePad(ctx, b, '#bfc6c1', '#d2d7cf');
+    // Covered passenger bays.
+    poly(ctx, diamondPoints(b.x + .08, b.y + .85, 1.82, .9, .06), '#8b9694');
+    const x = b.x + .2, y = b.y + .15, w = 1.6, h = .82;
+    const g = boxGeo(x, y, w, h, .04);
+    drawBox(ctx, x, y, w, h, 21, { inset: .04, wall: '#e7e8df', left: '#c4cec9', right: '#aab8b6', top: '#f3f5ed' });
+    drawWindows(ctx, g.L, g.B, 21, 1, 5, { top: 4, bottom: 6, winW: 5, winH: 5, color: '#78b9cf' });
+    roofLip(ctx, g, 21, '#3c7183');
+    poly(ctx, [{ x: g.L.x, y: g.L.y - 23 }, { x: g.B.x, y: g.B.y - 23 }, { x: g.B.x, y: g.B.y - 28 }, { x: g.L.x, y: g.L.y - 28 }], '#e0a84a');
+    drawDoor(ctx, g, 21, '#466879', { w: 5, h: 9, frac: .5 });
+    // Two compact buses at the curb.
+    for (let i = 0; i < 2; i++) {
+      const p = iso(b.x + .55 + i * .78, b.y + 1.5);
+      ctx.fillStyle = i ? '#e5a944' : '#4a9eb0';
+      roundRect(ctx, p.x - 10, p.y - 9, 20, 8, 2); ctx.fill();
+      ctx.fillStyle = '#bfe3e8'; ctx.fillRect(p.x - 7, p.y - 8, 5, 3);
+      ctx.fillRect(p.x, p.y - 8, 5, 3);
+      ctx.fillStyle = '#39474a';
+      ctx.beginPath(); ctx.arc(p.x - 6, p.y, 2, 0, 7); ctx.arc(p.x + 6, p.y, 2, 0, 7); ctx.fill();
+    }
+    const sign = iso(b.x + 1, b.y + .3);
+    ctx.fillStyle = '#fff4d8'; ctx.font = '700 5px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('BUS', sign.x, sign.y - 26);
+    if (NIGHT > .25) { ctx.globalAlpha = .25; ctx.fillStyle = '#ffe8a0'; ctx.beginPath(); ctx.arc(sign.x, sign.y - 17, 18, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+  }
+
+  function drawAirport(ctx, b, time) {
+    basePad(ctx, b, '#aebbb2', '#c4cec1');
+    // Runway, centerline and threshold markings.
+    const runway = diamondPoints(b.x + .18, b.y + 1.35, 4.65, 1.15, .02);
+    poly(ctx, runway, '#59636a');
+    const start = iso(b.x + .38, b.y + 1.92), end = iso(b.x + 4.62, b.y + 1.92);
+    line(ctx, start, end, '#e8e4d4', 1.2);
+    for (let i = 0; i < 5; i++) {
+      const a = iso(b.x + .38 + i * .13, b.y + 1.52), z = iso(b.x + .38 + i * .13, b.y + 1.78);
+      line(ctx, a, z, '#f2efe3', 1.3);
+      const aa = iso(b.x + 4.12 + i * .13, b.y + 1.52), zz = iso(b.x + 4.12 + i * .13, b.y + 1.78);
+      line(ctx, aa, zz, '#f2efe3', 1.3);
+    }
+    // Terminal concourse and glass frontage.
+    const x = b.x + 1.2, y = b.y + .12, w = 2.45, h = 1.05;
+    const g = boxGeo(x, y, w, h, .04);
+    drawBox(ctx, x, y, w, h, 27, { inset: .04, wall: '#e5e8e3', left: '#c5cfcc', right: '#aab9bc', top: '#f5f4e9' });
+    drawWindows(ctx, g.L, g.B, 27, 2, 6, { top: 5, bottom: 7, winW: 5, winH: 7, color: '#6eb4cf' });
+    roofLip(ctx, g, 27, '#43849a');
+    drawDoor(ctx, g, 27, '#456b7a', { w: 8, h: 12, frac: .53 });
+    const sign = iso(b.x + 2.42, b.y + .25);
+    ctx.fillStyle = '#f7f0dc'; ctx.font = '700 6px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('AIRPORT', sign.x, sign.y - 29);
+    // Control tower with a glass cab.
+    const tower = boxGeo(b.x + 3.72, b.y + .2, .65, .56, .05);
+    drawBox(ctx, b.x + 3.72, b.y + .2, .65, .56, 45, { inset: .05, wall: '#d8ddd8', left: '#b7c3c0', right: '#99aaa9', top: '#e9eee7' });
+    poly(ctx, [{ x: tower.L.x, y: tower.L.y - 46 }, { x: tower.B.x, y: tower.B.y - 46 }, { x: tower.B.x, y: tower.B.y - 53 }, { x: tower.L.x, y: tower.L.y - 53 }], '#46859a');
+    poly(ctx, [{ x: tower.T.x, y: tower.T.y - 46 }, { x: tower.R.x, y: tower.R.y - 46 }, { x: tower.R.x, y: tower.R.y - 53 }, { x: tower.T.x, y: tower.T.y - 53 }], '#63abc1');
+    // Simple parked aircraft silhouette.
+    const plane = iso(b.x + 4.15, b.y + 3.17);
+    poly(ctx, [{ x: plane.x - 20, y: plane.y - 2 }, { x: plane.x + 15, y: plane.y - 4 }, { x: plane.x + 20, y: plane.y - 1 }, { x: plane.x + 13, y: plane.y + 1 }, { x: plane.x - 20, y: plane.y + 2 }], '#f4f2e9');
+    poly(ctx, [{ x: plane.x - 2, y: plane.y - 2 }, { x: plane.x + 5, y: plane.y - 12 }, { x: plane.x + 9, y: plane.y - 12 }, { x: plane.x + 5, y: plane.y - 1 }], '#d4d8d2');
+    poly(ctx, [{ x: plane.x - 3, y: plane.y + 1 }, { x: plane.x + 4, y: plane.y + 8 }, { x: plane.x + 7, y: plane.y + 8 }, { x: plane.x + 3, y: plane.y + 1 }], '#c4cbc7');
+    if (NIGHT > .25) { ctx.globalAlpha = .25; ctx.fillStyle = '#ffeaa3'; ctx.beginPath(); ctx.arc(sign.x, sign.y - 18, 26, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
   }
 
   function drawMonument(ctx, b, time) {

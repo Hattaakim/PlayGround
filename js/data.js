@@ -98,6 +98,21 @@ window.KK = window.KK || {};
       w: 3, h: 3, art: 'stadium', radius: 8, happy: 12, powerUse: 20, waterUse: 10, jobs: 40,
       unlockPop: 350, desc: 'Pusat kebanggaan kota. Menarik massa dan lapangan kerja.', tag: '+12 😊', previewLevel: 1
     },
+    museum: {
+      name: 'Museum Kota', cat: 'fun', kind: 'fun', cost: 780, maint: 16,
+      w: 2, h: 2, art: 'museum', radius: 6, happy: 8, powerUse: 7, jobs: 16,
+      unlockPop: 100, desc: 'Ruang sejarah dan budaya yang memperkaya kehidupan warga.', tag: '+8 😊', previewLevel: 1
+    },
+    bus_terminal: {
+      name: 'Terminal Bus', cat: 'transport', kind: 'service', cost: 540, maint: 13,
+      w: 2, h: 2, art: 'busterminal', radius: 5, happy: 5, powerUse: 6, waterUse: 2, jobs: 14,
+      unlockPop: 80, desc: 'Menghubungkan lingkungan kota dengan transportasi umum.', tag: 'Transit', previewLevel: 1
+    },
+    airport: {
+      name: 'Bandara Kota', cat: 'transport', kind: 'service', cost: 3200, maint: 48,
+      w: 5, h: 4, art: 'airport', radius: 10, happy: 10, powerUse: 28, waterUse: 12, jobs: 72,
+      unlockPop: 500, desc: 'Bandara regional dengan landasan pacu dan terminal. Membuka banyak lapangan kerja.', tag: '72 kerja', previewLevel: 1
+    },
     monument: {
       name: 'Monumen Kota', cat: 'fun', kind: 'fun', cost: 300, maint: 2,
       w: 1, h: 1, art: 'monument', radius: 4, happy: 4,
@@ -154,6 +169,7 @@ window.KK = window.KK || {};
     { id: 'utility', name: 'Utilitas', icon: 'bolt', eyebrow: 'DAYA KOTA', blurb: 'Listrik dan air adalah nyawa kota. Tanpa keduanya, tak ada yang tumbuh.' },
     { id: 'service', name: 'Layanan', icon: 'heart', eyebrow: 'WARGA TERLAYANI', blurb: 'Sekolah, rumah sakit, polisi, dan damkar menjaga warga tetap aman dan bahagia.' },
     { id: 'fun', name: 'Rekreasi', icon: 'ferris', eyebrow: 'HIDUP LEBIH SERU', blurb: 'Taman, alun-alun, kincir ria. Kota yang menyenangkan menarik lebih banyak warga.' },
+    { id: 'transport', name: 'Transportasi', icon: 'road', eyebrow: 'KOTA TERHUBUNG', blurb: 'Terminal dan bandara membuka akses perjalanan serta lapangan kerja baru.' },
     { id: 'decor', name: 'Dekorasi', icon: 'tree', eyebrow: 'DETAIL KECIL', blurb: 'Pohon, bunga, dan lampu jalan untuk kota yang cantik dan nyaman.' }
   ];
 

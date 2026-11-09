@@ -1009,21 +1009,47 @@ window.KK = window.KK || {};
 
   function updateAdvisor() {
     if (!state) return;
+    const suggest = (id, reason) => {
+      const d = DEFS[id];
+      if (!d) return reason;
+      if (state.money >= d.cost) return `${reason} Bangun ${d.name} (${money(d.cost)}).`;
+      return `${reason} ${d.name} berbiaya ${money(d.cost)}; saldo ${money(state.money)}, kurang ${money(d.cost - state.money)}. Tambah pemasukan dari zona komersial atau selesaikan misi dulu.`;
+    };
     let text;
     if (!state.roadCount) text = 'Mulai dengan membangun beberapa petak Jalan. Zona dan bangunan harus menempel pada jalan.';
-    else if (!state.zoneCount) text = 'Sekarang cat Zona Perumahan di sisi jalan. Rumah akan tumbuh dengan sendirinya.';
-    else if (!state.hasPower) text = 'Warga butuh listrik. Bangun Pembangkit Uap di dekat jalan (kategori Utilitas).';
-    else if (!state.hasWater) text = 'Listrik sudah ada. Jangan lupa Menara Air agar rumah bisa terisi.';
-    else if (state.powerUse > state.powerCap) text = 'Listrik tidak cukup! Tambah pembangkit atau hemat dengan taman surya.';
-    else if (state.waterUse > state.waterCap) text = 'Pasokan air kurang. Bangun menara air tambahan di dekat jalan.';
-    else if (state.jobs < state.workers * .75 && state.population > 20) text = 'Banyak warga menganggur. Cat zona komersial atau industri untuk lapangan kerja.';
-    else if (state.happiness < 50) text = 'Warga gelisah. Tambah taman, sekolah, atau polisi—dan jangan naikkan pajak terlalu tinggi.';
-    else if (!state.hasPark && state.population > 30) text = 'Kota butuh tempat bersantai. Taman Kota menaikkan kebahagiaan dan mempercepat pertumbuhan.';
-    else if (!state.hasSchool && state.maxPop >= 30) text = 'Sekolah akan terbuka di 50 warga. Siapkan lahan dan tabungan untuk mendidik generasi berikutnya.';
-    else if (state.money < 300) text = 'Kas menipis. Selesaikan misi atau bangun zona komersial untuk menambah pemasukan.';
+    else if (!state.zoneCount) text = suggest('zone_r', 'Mulai dengan zona perumahan di sisi jalan agar warga datang.');
+    else if (!state.hasPower) text = suggest('power_plant', 'Warga butuh listrik agar rumah bisa tumbuh.');
+    else if (!state.hasWater) text = suggest('water_tower', 'Listrik tersedia; pasokan air dibutuhkan agar rumah bisa terisi.');
+    else if (state.powerUse > state.powerCap) text = suggest('power_plant', 'Listrik kota tidak cukup; tambah kapasitas sebelum memperluas kawasan.');
+    else if (state.waterUse > state.waterCap) text = suggest('water_tower', 'Pasokan air kurang; tambah kapasitas sebelum memperluas kawasan.');
+    else if (state.jobs < state.workers * .75 && state.population > 20) text = suggest('zone_c', 'Banyak warga menganggur. Zona komersial menyediakan pekerjaan dan pemasukan.');
+    else if (state.happiness < 50) {
+      text = !state.hasPark
+        ? suggest('small_park', 'Warga gelisah; ruang hijau memberi tempat bersantai dan menaikkan kebahagiaan.')
+        : suggest(state.maxPop >= 50 && !state.hasSchool ? 'school' : 'police', 'Warga gelisah; layanan kota dapat membantu, dan pajak yang lebih rendah juga mengurangi tekanan.');
+    }
+    else if (!state.hasPark && state.population > 30) text = suggest('park', 'Kota butuh tempat bersantai. Taman membantu kebahagiaan dan pertumbuhan rumah.');
+    else if (!state.hasSchool && state.maxPop >= 50) text = suggest('school', 'Sekolah kini terbuka dan membantu rumah berkembang ke tingkat lebih tinggi.');
+    else if (!state.hasSchool && state.maxPop >= 30) text = `Sekolah terbuka pada 50 penduduk terbaik; kota pernah mencapai ${fmt(state.maxPop)}. Siapkan ${money(DEFS.school.cost)} untuk saat terbuka.`;
     else {
-      const n = KK.MISSIONS.find(m => !state.missionsDone[m.id]);
-      text = n ? `Misi berikutnya: ${n.label}. ${n.tip}` : 'Kota berjalan baik. Teruslah berkembang hingga menjadi metropolis!';
+      const upcoming = [DEFS.bus_terminal, DEFS.museum, DEFS.airport, DEFS.school]
+        .filter(d => d && d.unlockPop > state.maxPop)
+        .sort((a, b) => a.unlockPop - b.unlockPop)[0];
+      const newBuild = [
+        ['bus_terminal', state.maxPop >= 80],
+        ['museum', state.maxPop >= 100],
+        ['airport', state.maxPop >= 500]
+      ].find(([id, unlocked]) => unlocked && !state.buildings.some(b => b.defId === id));
+      if (newBuild) {
+        const d = DEFS[newBuild[0]];
+        text = suggest(newBuild[0], `${d.name} terbuka pada ${fmt(d.unlockPop)} penduduk dan dapat menambah layanan, kebahagiaan, serta pekerjaan.`);
+      } else if (upcoming && upcoming.unlockPop - state.maxPop <= 50) {
+        text = `Bangunan berikutnya: ${upcoming.name}, terbuka pada ${fmt(upcoming.unlockPop)} penduduk terbaik (sekarang ${fmt(state.maxPop)}). Rencanakan saldo ${money(upcoming.cost)}.`;
+      } else if (state.money < 300) text = 'Kas menipis. Tunda bangunan mahal, selesaikan misi, atau tambah zona komersial untuk memperkuat pemasukan.';
+      else {
+        const n = KK.MISSIONS.find(m => !state.missionsDone[m.id]);
+        text = n ? `Misi berikutnya: ${n.label}. ${n.tip}` : 'Kota berjalan baik. Teruslah berkembang hingga menjadi metropolis!';
+      }
     }
     $('#advisorText').textContent = text;
   }
